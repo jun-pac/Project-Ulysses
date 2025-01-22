@@ -31,7 +31,7 @@ setInterval(() => {
   if (isStatsVisible) {
     updateStats(); // Update stats only if they are visible
   }
-}, 1000);
+}, 50);
 
 // Initial setup
 updateStats();
