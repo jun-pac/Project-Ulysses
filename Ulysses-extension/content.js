@@ -4,8 +4,6 @@ if (!window.isContentScriptLoaded) {
   const HIGHLIGHT_COLOR = "rgba(255, 0, 0, 0.3)";
   let observer;
   let timerDiv = null; // Declare timerDiv outside the functions to manage the timer properly
-  let wastedTime = 0;  // Variable to store wasted time on shorts
-  let regularTime = 0; // Variable to store time on regular videos
 
   // Create a visible timer on the page
   function createTimer() {
@@ -25,6 +23,14 @@ if (!window.isContentScriptLoaded) {
     }
   }
 
+  // Remove the timer from the page
+  function removeTimer() {
+    if (timerDiv) {
+      timerDiv.remove(); // Remove the timer from the DOM
+      timerDiv = null;   // Reset the timerDiv reference
+    }
+  }
+
   function highlightShortsVideos() {
     const videos = document.querySelectorAll("ytd-rich-item-renderer, ytd-video-renderer");
     videos.forEach((video) => {
@@ -35,47 +41,60 @@ if (!window.isContentScriptLoaded) {
     });
   }
 
+  // function isShortsVideo() {
+  //   const shortsPlayer = document.querySelector("ytd-shorts");
+  //   return Boolean(shortsPlayer);
+  // }
+
+  function isShortsVideo(){
+    return window.location.href.includes("/shorts/");
+  }    
+
+
   function trackWastedTime() {
     let lastTime = Date.now();
+    let currentVideo = null;
   
     setInterval(() => {
+      const isWaste = isShortsVideo();
+  
       // Only create timer if we're on a shorts video
-      if (window.location.href.includes("/shorts/")) {
+      if (isWaste) {
         createTimer(); // Create timer for shorts
       } else {
-        // Remove the timer if we're not on a shorts video
-        if (timerDiv) {
-          timerDiv.remove();
-          timerDiv = null; // Reset the timerDiv variable to null
-        }
+        removeTimer(); 
       }
-
-      const video = document.querySelector("video");
-      if (video && !video.paused) {
+  
+      // Force a fresh query for the current video element
+      currentVideo = document.querySelector("ytd-player").querySelector("video");
+      // console.log("Final selected video element:", currentVideo );
+      console.log("isShortsVideo: " + isWaste + " | isPlaying: " + (currentVideo && !currentVideo.paused));
+  
+      if (currentVideo && !currentVideo.paused) {
         const currentTime = Date.now();
         const increment = (currentTime - lastTime) / 1000; // Convert ms to seconds
         lastTime = currentTime;
-        if(window.location.href.includes("/shorts/")){
-          chrome.storage.local.get(["wastedTime"], (result) => {
+  
+        if (isWaste) {
+          chrome.storage.local.get(["wastedTime", "regularTime"], (result) => {
             const wastedTime = (result.wastedTime || 0) + increment;
-    
-            // Update the timer display
-            timerDiv.textContent = `You are wasting time! ${wastedTime.toFixed(2)} sec`;
-    
-            // Save updated wastedTime
+            const regularTime = (result.regularTime || 0);
+            timerDiv.textContent = `You are wasting time! ${wastedTime.toFixed(2)} / ${regularTime.toFixed(2)}sec`;
             chrome.storage.local.set({ wastedTime });
           });
         } else {
-          const regularTime = (result.regularTime || 0) + increment;
-    
-          // Save updated wastedTime
-          chrome.storage.local.set({ regularTime });
+          chrome.storage.local.get(["regularTime"], (result) => {
+            const regularTime = (result.regularTime || 0) + increment;
+            chrome.storage.local.set({ regularTime });
+          });
         }
       } else {
         lastTime = Date.now(); // Update lastTime to prevent over-counting
       }
-    }, 50); // Update every 50ms
+    }, 50); // Update every 1000ms
   }
+
+
 
   function initializeObserver() {
     if (!observer) {
@@ -93,83 +112,4 @@ if (!window.isContentScriptLoaded) {
 
   initializeObserver();
 }
-
-
-// if (!window.isContentScriptLoaded) {
-//   window.isContentScriptLoaded = true;
-
-//   const HIGHLIGHT_COLOR = "rgba(255, 0, 0, 0.3)";
-//   let observer;
-
-//   const timerDiv = document.createElement("div");
-
-//   // Create a visible timer on the page
-//   function createTimer() {
-//     timerDiv.id = "shortsTimer";
-//     timerDiv.style.position = "fixed";
-//     timerDiv.style.bottom = "10px";
-//     timerDiv.style.right = "10px";
-//     timerDiv.style.backgroundColor = "black";
-//     timerDiv.style.color = "white";
-//     timerDiv.style.fontSize = "30px";
-//     timerDiv.style.padding = "10px";
-//     timerDiv.style.borderRadius = "5px";
-//     timerDiv.style.zIndex = "9999";
-//     document.body.appendChild(timerDiv);
-//   }
-
-//   function highlightShortsVideos() {
-//     const videos = document.querySelectorAll("ytd-rich-item-renderer, ytd-video-renderer");
-//     videos.forEach((video) => {
-//       const linkElement = video.querySelector("a[href]");
-//       if (linkElement && linkElement.href.includes("/shorts/")) {
-//         video.style.backgroundColor = HIGHLIGHT_COLOR;
-//       }
-//     });
-//   }
-
-//   function trackWastedTime() {
-//     createTimer();
-  
-//     let lastTime = Date.now();
-  
-//     setInterval(() => {
-//       const video = document.querySelector("video");
-//       if (video && window.location.href.includes("/shorts/") && !video.paused) {
-//         const currentTime = Date.now();
-//         const increment = (currentTime - lastTime) / 1000; // Convert ms to seconds
-//         lastTime = currentTime;
-  
-//         chrome.storage.local.get(["wastedTime"], (result) => {
-//           const wastedTime = (result.wastedTime || 0) + increment;
-  
-//           // Update the timer display
-//           timerDiv.textContent = `You are wasting time! ${wastedTime.toFixed(2)} sec`;
-  
-//           // Save updated wastedTime
-//           chrome.storage.local.set({ wastedTime });
-//         });
-//       } else {
-//         lastTime = Date.now(); // Update lastTime to prevent over-counting
-//       }
-//     }, 50); // Update every 50ms
-//   }
-
-
-//   function initializeObserver() {
-//     if (!observer) {
-//       observer = new MutationObserver(() => {
-//         highlightShortsVideos();
-//       });
-
-//       observer.observe(document.body, { childList: true, subtree: true });
-//     }
-
-//     // Initial runs
-//     highlightShortsVideos();
-//     trackWastedTime();
-//   }
-
-//   initializeObserver();
-// }
 

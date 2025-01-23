@@ -3,22 +3,92 @@
 <head>
   <title>YouTube Time Saver</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 10px; }
-    button { padding: 10px; font-size: 14px; cursor: pointer; margin-top: 10px; }
-    #stats { margin-top: 20px; display: none; } /* Initially hidden */
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      width: 300px; /* Popup width */
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    button {
+      padding: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 10px 0;
+      width: 100%; /* Full-width buttons */
+    }
+
+    #stats {
+      margin-top: 20px;
+      display: none; /* Initially hidden */
+    }
+
+    /* Graph container styles */
+    #graphContainer {
+      display: none; /* Initially hidden */
+      margin: 20px 0;
+      height: 150px; /* Fixed graph height */
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+      padding: 10px;
+    }
+
+    /* Bar styles */
+    .bar {
+      width: 30px; /* Narrower bars */
+      border-radius: 5px;
+      transition: height 0.3s ease;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3); /* Adds shadow for a realistic look */
+    }
+
+    .bar.wasted {
+      background: linear-gradient(
+        to right,
+        rgba(255, 26, 26, 0.8), /* Darker red on the left */
+        rgba(255, 77, 77, 0.9), /* Lighter red at the center */
+        rgba(255, 26, 26, 0.8)  /* Darker red on the right */
+      );
+    }
+
+    .bar.regular {
+      background: linear-gradient(
+        to right,
+        rgba(46, 125, 50, 0.8), /* Darker green on the left */
+        rgba(76, 175, 80, 0.9), /* Lighter green at the center */
+        rgba(46, 125, 50, 0.8)  /* Darker green on the right */
+      );
+    }
+
+    /* Stats text */
+    p {
+      font-size: 14px;
+      margin: 5px 0;
+    }
   </style>
 </head>
 <body>
   <h2>YouTube Time Saver</h2>
   <p>Track and analyze your YouTube viewing habits.</p>
-  
+
   <!-- Show/Hide Stats toggle button -->
-  <button id="showStats">Show Wasted Time</button>
+  <button id="showStats">Show Stats</button>
+
+  <!-- Graph container -->
+  <div id="graphContainer"></div>
+
+  <!-- Stats text -->
   <div id="stats"></div>
-  
+
   <!-- Reset button -->
   <button id="resetButton">Reset</button>
-  
+
   <script src="popup.js"></script>
 </body>
 </html>
