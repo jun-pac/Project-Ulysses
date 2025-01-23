@@ -54,9 +54,17 @@ if (!window.isContentScriptLoaded) {
   function trackWastedTime() {
     let lastTime = Date.now();
     let currentVideo = null;
-  
+    let previousIsWaste = isShortsVideo();
+
     setInterval(() => {
       const isWaste = isShortsVideo();
+
+      if (isWaste !== previousIsWaste) {
+        previousIsWaste = isWaste;
+        console.log("Switching between Shorts and Regular. Reloading...");
+        window.location.reload();
+      }
+
   
       // Only create timer if we're on a shorts video
       if (isWaste) {
@@ -79,7 +87,11 @@ if (!window.isContentScriptLoaded) {
           chrome.storage.local.get(["wastedTime", "regularTime"], (result) => {
             const wastedTime = (result.wastedTime || 0) + increment;
             const regularTime = (result.regularTime || 0);
-            timerDiv.textContent = `You are wasting time! ${wastedTime.toFixed(2)} / ${regularTime.toFixed(2)}sec`;
+            if(wastedTime > 600){
+              timerDiv.textContent = `You are wasting time! ${Math.floor(wastedTime/60)}min ${Math.floor(wastedTime-Math.floor(wastedTime/60)*60)}sec`;
+            } else{
+              timerDiv.textContent = `You are wasting time! ${wastedTime.toFixed(2)}sec`;
+            }
             chrome.storage.local.set({ wastedTime });
           });
         } else {
