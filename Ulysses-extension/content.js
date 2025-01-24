@@ -19,14 +19,18 @@ if (!window.isContentScriptLoaded) {
       timerDiv = document.createElement("div");
       timerDiv.id = "shortsTimer";
       timerDiv.style.position = "fixed";
-      timerDiv.style.bottom = "10px";
+      timerDiv.style.top = "35%";
       timerDiv.style.right = "10px";
-      timerDiv.style.backgroundColor = "black";
+      timerDiv.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
       timerDiv.style.color = "white";
       timerDiv.style.fontSize = "30px";
-      timerDiv.style.padding = "10px";
-      timerDiv.style.borderRadius = "5px";
+      timerDiv.style.padding = "15px 25px";
+      timerDiv.style.borderRadius = "12px";
       timerDiv.style.zIndex = "9999";
+      timerDiv.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+      timerDiv.style.boxShadow = "0px 4px 15px rgba(0, 0, 0, 0.2)"; 
+      timerDiv.style.width = "auto";
+      
       document.body.appendChild(timerDiv);
     }
   }
@@ -42,7 +46,7 @@ if (!window.isContentScriptLoaded) {
   // Add a rating UI for user feedback
   function createRatingUI() {
     if (ratingDiv) return;
-
+  
     // Create the main rating container
     ratingDiv = document.createElement("div");
     ratingDiv.id = "ratingDiv";
@@ -51,70 +55,77 @@ if (!window.isContentScriptLoaded) {
     ratingDiv.style.right = "10px";
     ratingDiv.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
     ratingDiv.style.boxShadow = "0px 4px 12px rgba(0, 0, 0, 0.2)";
-    ratingDiv.style.padding = "20px";
+    ratingDiv.style.padding = "15px"; // Reduced padding for a smaller box
     ratingDiv.style.borderRadius = "20px";
     ratingDiv.style.display = "flex";
     ratingDiv.style.flexDirection = "column";
     ratingDiv.style.alignItems = "center";
     ratingDiv.style.zIndex = "9999";
-
-
+    ratingDiv.style.width = "auto";
+  
     // Add title text
     const text = document.createElement("p");
     text.textContent = "Rate this video:";
     text.style.fontSize = "24px";
     text.style.fontWeight = "bold";
-    text.style.marginBottom = "20px";
+    text.style.marginBottom = "15px"; // Reduced margin for compactness
     text.style.color = "#333";
     ratingDiv.appendChild(text);
-
+  
     // Create stars with labels
     const starContainer = document.createElement("div");
     starContainer.style.display = "flex";
-    starContainer.style.alignItems = "center";
-    starContainer.style.justifyContent = "space-between";
+    starContainer.style.alignItems = "flex-start";
+    starContainer.style.justifyContent = "center";
+    starContainer.style.gap = "8px"; // Reduced gap between stars
     starContainer.style.width = "100%";
-
+  
     for (let i = 1; i <= 5; i++) {
       const starWrapper = document.createElement("div");
       starWrapper.style.display = "flex";
       starWrapper.style.flexDirection = "column";
       starWrapper.style.alignItems = "center";
-      starWrapper.style.margin = "0 10px";
-
+      starWrapper.style.margin = "0 6px"; // Reduced margin for compactness
+  
       const starButton = document.createElement("button");
       starButton.innerHTML = "&#9733;";
-      starButton.style.fontSize = "40px";
+      starButton.style.fontSize = "30px";
       starButton.style.color = "#D4AF37"; // Gold with a darker shade
       starButton.style.background = "none";
       starButton.style.border = "none";
       starButton.style.cursor = "pointer";
       starButton.style.transition = "transform 0.2s ease";
       starButton.onmouseover = () => {
-        starButton.style.transform = "scale(1.2)";
+        starButton.style.transform = "scale(1.4)";
       };
       starButton.onmouseout = () => {
         starButton.style.transform = "scale(1)";
       };
-
+  
       starButton.onclick = () => {
         saveRating(i);
         removeRatingUI();
         showRatingMessage("Thank you for rating this video!");
       };
-
+  
       const label = document.createElement("p");
       label.textContent = i;
-      label.style.fontSize = "16px";
+      label.style.fontSize = "14px";
       label.style.margin = "5px 0 0";
       label.style.color = "#333";
-
-      // Add "worst" and "best" under the first and last stars
-      if (i === 1) label.textContent += " (worst)";
-      if (i === 5) label.textContent += " (best)";
-
+  
+      const subLabel = document.createElement("p");
+      subLabel.style.fontSize = "12px";
+      subLabel.style.margin = "2px 0 0";
+      subLabel.style.color = "#666";
+  
+      // Add "wasteful" and "beneficial" under the first and last stars
+      if (i === 1) subLabel.textContent = "(wasteful)";
+      if (i === 5) subLabel.textContent = "(beneficial)";
+  
       starWrapper.appendChild(starButton);
       starWrapper.appendChild(label);
+      if (i === 1 || i === 5) starWrapper.appendChild(subLabel);
       starContainer.appendChild(starWrapper);
     }
     ratingDiv.appendChild(starContainer);
@@ -281,9 +292,12 @@ if (!window.isContentScriptLoaded) {
           clearInterval(videoCheckInterval);
           videoCheckInterval = setInterval(() => {
             const video = document.querySelector("video");
-            if (video && video.readyState === 4 && !video.paused && video.currentTime > 0) {
+            // const isAd = document.querySelector("div#ad-container") || document.querySelector("iframe[src*='ad']");
+            const isAd = video && video.paused && video.currentTime === 0;
+
+            if (video && !isAd && video.readyState === 4 && video.currentTime > 0) {
               clearInterval(videoCheckInterval);
-              console.log("Video is fully loaded and playing.");
+              console.log("Video is fully loaded and not an ad.");
               isWaste = isWastingVideo();
             }
           }, 50);
