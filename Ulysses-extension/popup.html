@@ -6,11 +6,15 @@
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
-      width: 300px; /* Popup width */
+      width: 300px;
+      border-radius: 15px; /* Rounded corners for the popup */
+      background: linear-gradient(to bottom, #f3f4f6, #e0e7ff); /* Subtle gradient background */
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     h2 {
       text-align: center;
+      color: #4a5568; /* Darker gray for the header */
     }
 
     button {
@@ -19,6 +23,17 @@
       cursor: pointer;
       margin: 10px 0;
       width: 100%; /* Full-width buttons */
+      border: none;
+      border-radius: 15px; /* Rounded buttons */
+      color: white;
+      background: linear-gradient(to right, #38a169, #48bb78); /* Green gradient */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    button:hover {
+      background: linear-gradient(to right, #2f855a, #38a169); /* Darker green on hover */
+      transform: scale(1.05); /* Slight scale-up on hover */
     }
 
     #stats {
@@ -26,50 +41,60 @@
       display: none; /* Initially hidden */
     }
 
-    /* Graph container styles */
     #graphContainer {
       display: none; /* Initially hidden */
       margin: 20px 0;
-      height: 150px; /* Fixed graph height */
+      height: 150px;
       display: flex;
       align-items: flex-end;
       justify-content: space-around;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      background-color: #f9f9f9;
+      border: 1px solid #cbd5e0; /* Light border */
+      border-radius: 10px;
+      background-color: #edf2f7; /* Light gray background */
       padding: 10px;
     }
 
-    /* Bar styles */
     .bar {
       width: 30px; /* Narrower bars */
       border-radius: 5px;
       transition: height 0.3s ease;
-      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3); /* Adds shadow for a realistic look */
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
     }
 
     .bar.wasted {
-      background: linear-gradient(
-        to right,
-        rgba(255, 26, 26, 0.8), /* Darker red on the left */
-        rgba(255, 77, 77, 0.9), /* Lighter red at the center */
-        rgba(255, 26, 26, 0.8)  /* Darker red on the right */
-      );
+      background: linear-gradient(to right, #fc8181, #f56565); /* Gradient for wasted time */
     }
 
     .bar.regular {
-      background: linear-gradient(
-        to right,
-        rgba(46, 125, 50, 0.8), /* Darker green on the left */
-        rgba(76, 175, 80, 0.9), /* Lighter green at the center */
-        rgba(46, 125, 50, 0.8)  /* Darker green on the right */
-      );
+      background: linear-gradient(to right, #68d391, #48bb78); /* Gradient for regular time */
     }
 
-    /* Stats text */
     p {
       font-size: 14px;
       margin: 5px 0;
+      color: #4a5568; /* Dark gray for text */
+    }
+
+    #shareSection {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    #shareButton {
+      padding: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      border-radius: 15px;
+      color: white;
+      background: linear-gradient(to right, #3182ce, #63b3ed); /* Blue gradient */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    #shareButton:hover {
+      background: linear-gradient(to right, #2b6cb0, #4299e1); /* Darker blue on hover */
+      transform: scale(1.05);
     }
   </style>
 </head>
@@ -77,17 +102,18 @@
   <h2>YouTube Time Saver</h2>
   <p>Track and analyze your YouTube viewing habits.</p>
 
-  <!-- Show/Hide Stats toggle button -->
   <button id="showStats">Show Stats</button>
 
-  <!-- Graph container -->
   <div id="graphContainer"></div>
 
-  <!-- Stats text -->
   <div id="stats"></div>
 
-  <!-- Reset button -->
   <button id="resetButton">Reset</button>
+
+  <div id="shareSection">
+    <p>Share this app with someone you care about:</p>
+    <button id="shareButton">Share</button>
+  </div>
 
   <script src="popup.js"></script>
 </body>

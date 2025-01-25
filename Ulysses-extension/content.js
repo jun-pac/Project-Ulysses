@@ -28,9 +28,9 @@ if (!window.isContentScriptLoaded) {
       timerDiv.style.borderRadius = "12px";
       timerDiv.style.zIndex = "9999";
       timerDiv.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
-      timerDiv.style.boxShadow = "0px 4px 15px rgba(0, 0, 0, 0.2)"; 
+      timerDiv.style.boxShadow = "0px 4px 15px rgba(0, 0, 0, 0.2)";
       timerDiv.style.width = "auto";
-      
+
       document.body.appendChild(timerDiv);
     }
   }
@@ -46,7 +46,7 @@ if (!window.isContentScriptLoaded) {
   // Add a rating UI for user feedback
   function createRatingUI() {
     if (ratingDiv) return;
-  
+
     // Create the main rating container
     ratingDiv = document.createElement("div");
     ratingDiv.id = "ratingDiv";
@@ -62,7 +62,7 @@ if (!window.isContentScriptLoaded) {
     ratingDiv.style.alignItems = "center";
     ratingDiv.style.zIndex = "9999";
     ratingDiv.style.width = "auto";
-  
+
     // Add title text
     const text = document.createElement("p");
     text.textContent = "Rate this video:";
@@ -71,7 +71,7 @@ if (!window.isContentScriptLoaded) {
     text.style.marginBottom = "15px"; // Reduced margin for compactness
     text.style.color = "#333";
     ratingDiv.appendChild(text);
-  
+
     // Create stars with labels
     const starContainer = document.createElement("div");
     starContainer.style.display = "flex";
@@ -79,14 +79,14 @@ if (!window.isContentScriptLoaded) {
     starContainer.style.justifyContent = "center";
     starContainer.style.gap = "8px"; // Reduced gap between stars
     starContainer.style.width = "100%";
-  
+
     for (let i = 1; i <= 5; i++) {
       const starWrapper = document.createElement("div");
       starWrapper.style.display = "flex";
       starWrapper.style.flexDirection = "column";
       starWrapper.style.alignItems = "center";
       starWrapper.style.margin = "0 6px"; // Reduced margin for compactness
-  
+
       const starButton = document.createElement("button");
       starButton.innerHTML = "&#9733;";
       starButton.style.fontSize = "30px";
@@ -101,28 +101,28 @@ if (!window.isContentScriptLoaded) {
       starButton.onmouseout = () => {
         starButton.style.transform = "scale(1)";
       };
-  
+
       starButton.onclick = () => {
         saveRating(i);
         removeRatingUI();
         showRatingMessage("Thank you for rating this video!");
       };
-  
+
       const label = document.createElement("p");
       label.textContent = i;
       label.style.fontSize = "14px";
       label.style.margin = "5px 0 0";
       label.style.color = "#333";
-  
+
       const subLabel = document.createElement("p");
       subLabel.style.fontSize = "12px";
       subLabel.style.margin = "2px 0 0";
       subLabel.style.color = "#666";
-  
+
       // Add "wasteful" and "beneficial" under the first and last stars
       if (i === 1) subLabel.textContent = "(wasteful)";
       if (i === 5) subLabel.textContent = "(beneficial)";
-  
+
       starWrapper.appendChild(starButton);
       starWrapper.appendChild(label);
       if (i === 1 || i === 5) starWrapper.appendChild(subLabel);
@@ -234,7 +234,7 @@ if (!window.isContentScriptLoaded) {
       console.error("Unexpected video length format:", videoLength);
       return null;
     }
-    console.log(videoTitle + " " + videoDescription + " " + videoLength + " | lengthInSeconds :" + lengthInSeconds);
+    // console.log(videoTitle + " " + videoDescription + " " + videoLength + " | lengthInSeconds :" + lengthInSeconds);
 
     return {
       videoId,
@@ -248,7 +248,7 @@ if (!window.isContentScriptLoaded) {
   function isWastingVideo() {
     if (isShortsVideo()) return true;
     const { lengthInSeconds } = getVideoDetails();
-    console.log("isWastingVideo function call: " + lengthInSeconds + " | " + isWaste);
+    console.log("isWastingVideo function call. lengthInSeconds: " + lengthInSeconds + " | isWaste:" + isWaste);
     return lengthInSeconds <= 180; // Shorts or less than 3 minutes
   }
 
@@ -288,19 +288,26 @@ if (!window.isContentScriptLoaded) {
         if (currentUrl.startsWith("https://www.youtube.com/watch") || currentUrl.startsWith("https://www.youtube.com/shorts")) {
           createRatingUI();
 
-          // Check if video is fully loaded, and check if it is wasting video.
-          clearInterval(videoCheckInterval);
-          videoCheckInterval = setInterval(() => {
-            const video = document.querySelector("video");
-            // const isAd = document.querySelector("div#ad-container") || document.querySelector("iframe[src*='ad']");
-            const isAd = video && video.paused && video.currentTime === 0;
+          if (isShorts) {
+            isWaste = isWastingVideo();
+          } else {
+            // Check if video is fully loaded, and check if it is wasting video.
+            clearInterval(videoCheckInterval);
+            videoCheckInterval = setInterval(() => {
+              const video = document.querySelector("video");
+              // const isAd = document.querySelector("div#ad-container") || document.querySelector("iframe[src*='ad']");
+              const { lengthInSeconds } = getVideoDetails();
+              // ================ Temporal solution. Need to be addressed. ================ 
+              const isAd = lengthInSeconds === 15;  
 
-            if (video && !isAd && video.readyState === 4 && video.currentTime > 0) {
-              clearInterval(videoCheckInterval);
-              console.log("Video is fully loaded and not an ad.");
-              isWaste = isWastingVideo();
-            }
-          }, 50);
+              if (video && !isAd && video.readyState === 4 && video.currentTime > 0) {
+                clearInterval(videoCheckInterval);
+                console.log("Video is fully loaded and not an ad." + " paused: " + video.paused + " | video.currentTime: " + video.currentTime);
+                isWaste = isWastingVideo();
+              }
+            }, 250);
+
+          }
         }
         else {
           isWaste = false;
@@ -344,7 +351,7 @@ if (!window.isContentScriptLoaded) {
       } else {
         lastTime = Date.now(); // Update lastTime to prevent over-counting
       }
-    }, 50); // Update every 1000ms
+    }, 100); // Update every 1000ms
   }
 
 
