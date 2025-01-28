@@ -104,7 +104,7 @@ if (!window.isContentScriptLoaded) {
       };
 
       starButton.onclick = () => {
-        saveRating(i);
+        updatePreferenceReport(i);
         removeRatingUI();
         showRatingMessage("Thank you for rating this video!");
       };
@@ -178,9 +178,7 @@ if (!window.isContentScriptLoaded) {
   }
 
   // Save the rating to chrome.storage
-  async function saveRating(rating) {
-    const videoDetails = await getVideoDetails();
-
+  function saveRating(videoDetails, rating) {
     chrome.storage.local.get(["videoRatings"], (result) => {
       const ratings = result.videoRatings || {};
       ratings[videoDetails.videoId] = {
@@ -195,26 +193,6 @@ if (!window.isContentScriptLoaded) {
   }
 
 
-
-  // function getVideoLength() {
-  //   // Video Length
-  //   const videoLengthElement = document.querySelector(".ytp-time-duration");
-  //   return videoLengthElement ? parseTimeToSeconds(videoLengthElement.textContent) : 0;
-  // }
-
-
-  // function getYoutubeApiKey() {
-  //   return new Promise((resolve, reject) => {
-  //     chrome.storage.local.get(["Youtube_apiKey"], (result) => {
-  //       if (chrome.runtime.lastError) {
-  //         reject(chrome.runtime.lastError);
-  //       } else {
-  //         resolve(result.Youtube_apiKey);
-  //       }
-  //     });
-  //   });
-  // }
-
   // Function to retrieve preferenceReport and apiKeys from Chrome Storage
   function getStoredData(keys) {
     return new Promise((resolve, reject) => {
@@ -228,10 +206,10 @@ if (!window.isContentScriptLoaded) {
     });
   }
 
-
   function truncateDescription(description, maxLength = 300) {
     return description.length > maxLength ? description.substring(0, maxLength) + "..." : description;
   }
+
 
   function parseISO8601Duration(duration) {
     const regex = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
@@ -252,9 +230,7 @@ if (!window.isContentScriptLoaded) {
 
   async function getVideoDetails() {
     // Video ID
-    console.log("getVideoDetails function call");
     const videoId = getVideoId();
-    currentVideoId = videoId;
 
     try {
       const { Youtube_apiKey } = await getStoredData(["Youtube_apiKey"]);
@@ -290,25 +266,147 @@ if (!window.isContentScriptLoaded) {
     }
   }
 
-  // // Helper to convert time format to seconds
-  // function parseTimeToSeconds(timeString) {
-  //   const parts = timeString.split(":").map(Number);
-  //   if (parts.length === 2) return parts[0] * 60 + parts[1]; // MM:SS
-  //   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]; // HH:MM:SS
-  //   return 0;
-  // }
+
+  // Function to initialize the preference report
+  function initializePreferenceReport() {
+    const initialReport = {
+      curiosity_driven: 5.0,
+      humor: 5.0,
+      emotional_catharsis: 5.0,
+      excitement: 5.0,
+      relaxation: 5.0,
+      aesthetic_pleasure: 5.0,
+      empowerment: 5.0,
+      controversy: 5.0,
+      fear_thrill: 5.0,
+      romantic_aspiration: 5.0,
+      social_connection: 5.0,
+      intellectual_stimulation: 5.0,
+      practical_knowledge: 5.0,
+      sensory_stimulation: 5.0,
+      empathy_compassion: 5.0,
+      nostalgia: 5.0,
+      achievement_focused: 5.0,
+      meme_culture: 5.0,
+      cultural_exploration: 5.0,
+      self_expression: 5.0,
+    };
+    chrome.storage.local.get(["preferenceReport"], (result) => {
+      if (result.preferenceReport) {
+        console.log("Preference report already exists. Skipping initialization.");
+      } else {
+        chrome.storage.local.set({ preferenceReport: initialReport }, () => {
+          console.log("Preference report initialized.");
+        });
+      }
+    });
+  }
 
 
-  // Determine if the video is a "wasting" video
+  // Function to update user's preference report
+  async function updatePreferenceReport(userRating) {
+    const videoDetails = getVideoDetails();
+    // Save rating in api key
+    saveRating(videoDetails, userRating);
+
+    // Update preference report using Deepseek API
+    const { preferenceReport, deepseek_apiKey } = await getStoredData(["preferenceReport", "deepseek_apiKey"]);
+    const prompt = `The current user's preference report is as follows:
+  ${JSON.stringify(preferenceReport, null, 2)}
+  
+  Each factor in the preference report has a value between 0 and 10:
+  - A value of 5 represents an average interest in that factor.
+  - A value above 5 indicates a stronger preference or enjoyment of content that aligns with that factor.
+  - A value below 5 indicates a lower preference or a tendency to find such content less engaging or potentially a waste.
+  
+  The user's preference report should be updated smoothly with small adjustments, typically less than 10% change for any factor, based on the following new video details and rating:
+  
+  Video Details:
+  - Title: "${videoDetails.title}"
+  - Channel: "${videoDetails.channel}"
+  - Description: "${videoDetails.description}"
+  - Length in seconds: ${videoDetails.lengthInSeconds}
+  - Rating: ${userRating}
+  
+  Ensure that updates are proportional to the rating (e.g., higher ratings lead to larger positive adjustments for relevant factors). Return the updated preference report in JSON format.`;
+
+    const response = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${deepseek_apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: "You are a helpful assistant." },
+          { role: "user", content: prompt },
+        ],
+        stream: false,
+      }),
+    });
+
+    const data = await response.json();
+    try {
+      const updatedReport = JSON.parse(data.choices[0].message.content);
+      return updatedReport;
+    } catch (error) {
+      console.error("Failed to parse API response:", data);
+      return null;
+    }
+  }
+
+
+
   async function isWastingVideo() {
     if (isShortsVideo()) return true;
+    const { title, channel, description, lengthInSeconds } = await getVideoDetails();
+    const { preferenceReport, deepseek_apiKey } = await getStoredData(["preferenceReport", "deepseek_apiKey"]);
 
-    const { videoId, title, description, channel, lengthInSeconds } = await getVideoDetails();
+    const prompt = `The user's current preference report is as follows:
+    ${JSON.stringify(preferenceReport, null, 2)}
+    
+    Video details:
+    - Title: "${title}"
+    - Channel: "${channel}"
+    - Description: "${description}"
+    - Length in seconds: ${lengthInSeconds}
+    
+    Determine if this video is a "wasted video" for this user based on the preference report and the video's details. 
+    Rules:
+    - Videos shorter than 3 minutes (180 seconds) are likely to be wasted videos.
+    - A video is more likely to be a wasted video if it aligns with topics or categories where the user's preference report has low values.
+    - Return the result as a JSON object:
+    { "is_waste": 1 } if the video is a wasted video, or { "is_waste": 0 } if it is not.`;
 
-    console.log(videoId + "\n" + title + "\n" + description + "\n" + channel + "\n lengthInSeconds :" + lengthInSeconds);
-    console.log("isWastingVideo function call. | isWaste:" + (lengthInSeconds <= 180));
-    return lengthInSeconds <= 180; // Shorts or less than 3 minutes
+    const response = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${deepseek_apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: "You are a helpful assistant." },
+          { role: "user", content: prompt },
+        ],
+        stream: false,
+      }),
+    });
+
+    const data = await response.json();
+    try {
+      const result = JSON.parse(data.choices[0].message.content);
+      console.log(result);
+      console.log("isWastingVideo function call. | isWaste:" + result);
+      return result;
+    } catch (error) {
+      console.error("Failed to parse API response:", data);
+      return null;
+    }
   }
+
 
   function isShortsVideo() {
     return window.location.href.includes("/shorts/");
@@ -328,17 +426,9 @@ if (!window.isContentScriptLoaded) {
   function trackWastedTime() {
     let lastTime = Date.now();
     let currentVideo = null;
-    // let previousIsShorts = isShortsVideo();
 
     setInterval(() => {
       const isShorts = isShortsVideo();
-
-      // Reload if switched between Shorts and Regular videos.
-      // if (isShorts !== previousIsShorts) {
-      //   previousIsShorts = isShorts;
-      //   console.log("Switching between Shorts and Regular. Reloading...");
-      //   // window.location.reload();
-      // }
 
       if (currentUrl !== window.location.href && currentVideoId !== getVideoId()) {
         currentUrl = window.location.href;
@@ -382,7 +472,6 @@ if (!window.isContentScriptLoaded) {
         if (isWaste) {
           chrome.storage.local.get(["wastedTime", "regularTime"], (result) => {
             const wastedTime = (result.wastedTime || 0) + increment;
-            const regularTime = (result.regularTime || 0);
             if (wastedTime > 600) {
               timerDiv.textContent = `You are wasting time! ${Math.floor(wastedTime / 60)}min ${Math.floor(wastedTime - Math.floor(wastedTime / 60) * 60)}sec`;
             } else {
@@ -441,11 +530,21 @@ if (!window.isContentScriptLoaded) {
     trackWastedTime();
 
 
-    // chrome.storage.local.set({ Youtube_apiKey: "" }, () => {
+    // chrome.storage.local.set({ youtube_apiKey: "" }, () => {
     //   console.log("API key has been saved to chrome.storage.local.");
     // });
 
     console.log("window.checkStorage():");
+    window.checkStorage();
+    window.clearStorage();
+    initializePreferenceReport();
+
+    chrome.storage.local.set({ youtube_apiKey: "" }, () => {
+      console.log("YOUTUBE API key has been saved to chrome.storage.local.");
+    });
+    chrome.storage.local.set({ deepseek_apiKey: "" }, () => {
+      console.log("DEEPSEEK API key has been saved to chrome.storage.local.");
+    });
     window.checkStorage();
   }
 
