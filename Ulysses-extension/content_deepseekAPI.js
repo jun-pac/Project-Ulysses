@@ -8,7 +8,6 @@ if (!window.isContentScriptLoaded) {
   let currentUrl = null;
   let currentVideoId = null;
   let isWaste = null;
-  let videoCheckInterval = null;
 
   let timerDiv = null;
   let ratingDiv = null;
@@ -177,6 +176,7 @@ if (!window.isContentScriptLoaded) {
     }
   }
 
+
   // Save the rating to chrome.storage
   function saveRating(videoDetails, rating) {
     chrome.storage.local.get(["videoRatings"], (result) => {
@@ -193,6 +193,7 @@ if (!window.isContentScriptLoaded) {
   }
 
 
+
   // Function to retrieve preferenceReport and apiKeys from Chrome Storage
   function getStoredData(keys) {
     return new Promise((resolve, reject) => {
@@ -206,10 +207,10 @@ if (!window.isContentScriptLoaded) {
     });
   }
 
+
   function truncateDescription(description, maxLength = 300) {
     return description.length > maxLength ? description.substring(0, maxLength) + "..." : description;
   }
-
 
   function parseISO8601Duration(duration) {
     const regex = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
@@ -230,7 +231,9 @@ if (!window.isContentScriptLoaded) {
 
   async function getVideoDetails() {
     // Video ID
+    console.log("getVideoDetails function call");
     const videoId = getVideoId();
+    currentVideoId = videoId;
 
     try {
       const { Youtube_apiKey } = await getStoredData(["Youtube_apiKey"]);
@@ -265,7 +268,6 @@ if (!window.isContentScriptLoaded) {
       return null;
     }
   }
-
 
   // Function to initialize the preference report
   function initializePreferenceReport() {
@@ -407,7 +409,6 @@ if (!window.isContentScriptLoaded) {
     }
   }
 
-
   function isShortsVideo() {
     return window.location.href.includes("/shorts/");
   }
@@ -426,9 +427,17 @@ if (!window.isContentScriptLoaded) {
   function trackWastedTime() {
     let lastTime = Date.now();
     let currentVideo = null;
+    // let previousIsShorts = isShortsVideo();
 
     setInterval(() => {
       const isShorts = isShortsVideo();
+
+      // Reload if switched between Shorts and Regular videos.
+      // if (isShorts !== previousIsShorts) {
+      //   previousIsShorts = isShorts;
+      //   console.log("Switching between Shorts and Regular. Reloading...");
+      //   // window.location.reload();
+      // }
 
       if (currentUrl !== window.location.href && currentVideoId !== getVideoId()) {
         currentUrl = window.location.href;
@@ -472,6 +481,7 @@ if (!window.isContentScriptLoaded) {
         if (isWaste) {
           chrome.storage.local.get(["wastedTime", "regularTime"], (result) => {
             const wastedTime = (result.wastedTime || 0) + increment;
+            const regularTime = (result.regularTime || 0);
             if (wastedTime > 600) {
               timerDiv.textContent = `You are wasting time! ${Math.floor(wastedTime / 60)}min ${Math.floor(wastedTime - Math.floor(wastedTime / 60) * 60)}sec`;
             } else {
@@ -530,7 +540,8 @@ if (!window.isContentScriptLoaded) {
     trackWastedTime();
 
 
-    // chrome.storage.local.set({ youtube_apiKey: "" }, () => {
+
+    // chrome.storage.local.set({ Youtube_apiKey: "" }, () => {
     //   console.log("API key has been saved to chrome.storage.local.");
     // });
 
@@ -546,6 +557,7 @@ if (!window.isContentScriptLoaded) {
       console.log("DEEPSEEK API key has been saved to chrome.storage.local.");
     });
     window.checkStorage();
+
   }
 
   initializeObserver();

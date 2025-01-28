@@ -103,7 +103,7 @@ if (!window.isContentScriptLoaded) {
       };
 
       starButton.onclick = () => {
-        updatePreferenceReport(i);
+        saveRating(i);
         removeRatingUI();
         showRatingMessage("Thank you for rating this video!");
       };
@@ -176,9 +176,10 @@ if (!window.isContentScriptLoaded) {
     }
   }
 
-
   // Save the rating to chrome.storage
-  function saveRating(videoDetails, rating) {
+  async function saveRating(rating) {
+    const videoDetails = await getVideoDetails();
+
     chrome.storage.local.get(["videoRatings"], (result) => {
       const ratings = result.videoRatings || {};
       ratings[videoDetails.videoId] = {
@@ -193,6 +194,25 @@ if (!window.isContentScriptLoaded) {
   }
 
 
+
+  // function getVideoLength() {
+  //   // Video Length
+  //   const videoLengthElement = document.querySelector(".ytp-time-duration");
+  //   return videoLengthElement ? parseTimeToSeconds(videoLengthElement.textContent) : 0;
+  // }
+
+
+  // function getYoutubeApiKey() {
+  //   return new Promise((resolve, reject) => {
+  //     chrome.storage.local.get(["youtube_apiKey"], (result) => {
+  //       if (chrome.runtime.lastError) {
+  //         reject(chrome.runtime.lastError);
+  //       } else {
+  //         resolve(result.youtube_apiKey);
+  //       }
+  //     });
+  //   });
+  // }
 
   // Function to retrieve preferenceReport and apiKeys from Chrome Storage
   function getStoredData(keys) {
@@ -226,24 +246,8 @@ if (!window.isContentScriptLoaded) {
   }
 
   function getVideoId() {
-    const url = new URL(window.location.href);
-
-    // Check if the URL is for a regular YouTube video
-    if (url.hostname === "www.youtube.com" && url.pathname.startsWith("/watch")) {
-      return new URLSearchParams(url.search).get("v"); // Regular video ID
-    }
-
-    // Check if the URL is for a YouTube Shorts video
-    if (url.hostname === "www.youtube.com" && url.pathname.startsWith("/shorts/")) {
-      // Extract videoId from the path (after "/shorts/")
-      const pathParts = url.pathname.split("/shorts/");
-      return pathParts[1]; // Video ID from Shorts URL
-    }
-
-    // Return null if the videoId cannot be found
-    return null;
+    return new URLSearchParams(window.location.search).get("v");
   }
-
 
   async function getVideoDetails() {
     // Video ID
@@ -285,209 +289,25 @@ if (!window.isContentScriptLoaded) {
     }
   }
 
-  // Function to initialize the preference report
-  function initializePreferenceReport() {
-    const initialReport = {
-      curiosity_driven: 3.0,
-      humor: 3.0,
-      emotional_catharsis: 3.0,
-      excitement: 3.0,
-      relaxation: 3.0,
-      aesthetic_pleasure: 3.0,
-      empowerment: 3.0,
-      controversy: 3.0,
-      fear_thrill: 3.0,
-      romantic_aspiration: 3.0,
-      social_connection: 3.0,
-      intellectual_stimulation: 3.0,
-      practical_knowledge: 3.0,
-      sensory_stimulation: 3.0,
-      empathy_compassion: 3.0,
-      nostalgia: 3.0,
-      achievement_focused: 3.0,
-      meme_culture: 3.0,
-      cultural_exploration: 3.0,
-      self_expression: 3.0,
-    };
-    chrome.storage.local.get(["preferenceReport"], (result) => {
-      if (result.preferenceReport) {
-        console.log("Preference report already exists. Skipping initialization.");
-      } else {
-        chrome.storage.local.set({ preferenceReport: initialReport }, () => {
-          console.log("Preference report initialized.");
-        });
-      }
-    });
-  }
+  // // Helper to convert time format to seconds
+  // function parseTimeToSeconds(timeString) {
+  //   const parts = timeString.split(":").map(Number);
+  //   if (parts.length === 2) return parts[0] * 60 + parts[1]; // MM:SS
+  //   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]; // HH:MM:SS
+  //   return 0;
+  // }
 
 
-  // Function to update user's preference report
-  async function updatePreferenceReport(userRating) {
-    const videoDetails = await getVideoDetails();
-    console.log("updatePreferenceReport title : ", videoDetails.title);
-    console.log("updatePreferenceReport channel : ", videoDetails.channel);
-    console.log("updatePreferenceReport description : ", videoDetails.description);
-    console.log("updatePreferenceReport lengthInSeconds : ", videoDetails.lengthInSeconds);
-
-    saveRating(videoDetails, userRating);
-
-    const { preferenceReport, chatgpt_apiKey } = await getStoredData(["preferenceReport", "chatgpt_apiKey"]);
-    const prompt = `The current user's preference report is as follows:
-  ${JSON.stringify(preferenceReport, null, 2)}
-
-  Each factor in the preference report has a value between 1.0 and 5.0:
-  - A value of 3.0 represents an average interest in that factor.
-  - A value above 3.0 indicates a stronger preference or enjoyment of content that aligns with that factor.
-  - A value below 3.0 indicates a lower preference or a tendency to find such content less engaging or potentially a waste.
-
-  Update the preference report based on the following new video details and user rating. Ensure changes are proportional to the rating (higher ratings cause larger adjustments):
-  - Video Title: "${videoDetails.title}"
-  - Channel: "${videoDetails.channel}"
-  - Description: "${videoDetails.description}"
-  - Length in seconds: ${videoDetails.lengthInSeconds}
-  - User Rating: ${userRating}
-  
-  Respond with ONLY the updated preference report in valid JSON format without any additional explanation or text.`;
-
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${chatgpt_apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.1,
-        messages: [
-          { role: "system", content: "You are an assistant designed to update user preference reports accurately based on video details and ratings." },
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
-
-    const data = await response.json();
-    try {
-      console.log("raw output: ", data);
-      const rawContent = data.choices[0].message.content.trim();
-
-      // Check if the raw content is a valid JSON object without markers (start and end with {})
-      let updatedReport;
-      if (rawContent.startsWith("{") && rawContent.endsWith("}")) {
-        // Directly parse the JSON object if it starts with "{" and ends with "}"
-        updatedReport = JSON.parse(rawContent);
-      } else {
-        // Otherwise, extract JSON between ```json and ```
-        const jsonMatch = rawContent.match(/```json\n([\s\S]*?)\n```/);
-        if (!jsonMatch) {
-          throw new Error("Failed to extract JSON content from the response.");
-        }
-        // Parse the extracted JSON
-        updatedReport = JSON.parse(jsonMatch[1]);
-      }
-
-      console.log("Parsed Updated Report:", updatedReport);
-
-
-      // Validate and update the original preference report
-      for (const key in preferenceReport) {
-        if (updatedReport.hasOwnProperty(key)) {
-          const value = updatedReport[key];
-          // Check if the value is a valid float between 1.0 and 5.0
-          if (typeof value === "number" && value >= 1.0 && value <= 5.0) {
-            preferenceReport[key] = value; // Update the value
-          } else {
-            console.warn(`Invalid value for key "${key}": ${value}`);
-          }
-        } else {
-          console.warn(`Key "${key}" is missing in the updated report.`);
-        }
-      }
-
-      chrome.storage.local.set({ preferenceReport }, () => {
-        console.log("Preference report updated.");
-      });
-
-      return null;
-    } catch (error) {
-      console.error("Failed to parse API response:", data);
-      return null;
-    }
-  }
-
-  // Function to check if a video is a waste for the user
+  // Determine if the video is a "wasting" video
   async function isWastingVideo() {
     if (isShortsVideo()) return true;
 
-    const { title, channel, description, lengthInSeconds } = await getVideoDetails();
-    console.log("isWastingVideo title : ", title);
-    console.log("isWastingVideo channel : ", channel);
-    console.log("isWastingVideo description : ", description);
-    console.log("isWastingVideo lengthInSeconds : ", lengthInSeconds);
+    const { videoId, title, description, channel, lengthInSeconds } = await getVideoDetails();
 
-    const { preferenceReport, chatgpt_apiKey } = await getStoredData(["preferenceReport", "chatgpt_apiKey"]);
-
-    const prompt = `The user's current preference report is as follows:
-  ${JSON.stringify(preferenceReport, null, 2)}
-
-  Video details:
-  - Title: "${title}"
-  - Channel: "${channel}"
-  - Description: "${description}"
-  - Length in seconds: ${lengthInSeconds}
-
-  Determine if this video is a "wasted video" for this user based on the preference report and the video's details.
-  Rules:
-  - Videos shorter than 3 minutes (180 seconds) are likely to be wasted videos.
-  - Each factor in the preference report has a value between 1 and 5 (A value of 3 represents an average interest in that factor.)
-  - A video is more likely to be a wasted video if it aligns with topics or categories where the user's preference report has low values.
-  - Respond with ONLY the result as a JSON object:
-  { "is_waste": 1 } if the video is a wasted video, or { "is_waste": 0 } if it is not.`;
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${chatgpt_apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.1,
-        messages: [
-          { role: "system", content: "You are an assistant trained to determine if videos align with user preferences or are a waste of time." },
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
-
-    const data = await response.json();
-    try {
-      console.log("raw output: ", data);
-      const rawContent = data.choices[0].message.content.trim();
-      let result;
-      if (rawContent.startsWith("{") && rawContent.endsWith("}")) {
-        // Directly parse the JSON object if it starts with "{" and ends with "}"
-        result = JSON.parse(rawContent);
-      } else {
-        // Otherwise, extract JSON between ```json and ```
-        const jsonMatch = rawContent.match(/```json\n([\s\S]*?)\n```/);
-        if (!jsonMatch) {
-          throw new Error("Failed to extract JSON content from the response.");
-        }
-        // Parse the extracted JSON
-        result = JSON.parse(jsonMatch[1]);
-      }
-      console.log("processed content: ", result);
-
-      console.log(result);
-      console.log("isWastingVideo result | title: ", title, " isWaste: ", result.is_waste);
-      return result.is_waste === 1;
-    } catch (error) {
-      console.error("Failed to parse API response:", data);
-      return null;
-    }
+    console.log(videoId + "\n" + title + "\n" + description + "\n" + channel + "\n lengthInSeconds :" + lengthInSeconds);
+    console.log("isWastingVideo function call. | isWaste:" + (lengthInSeconds <= 180));
+    return lengthInSeconds <= 180; // Shorts or less than 3 minutes
   }
-
 
   function isShortsVideo() {
     return window.location.href.includes("/shorts/");
@@ -507,20 +327,19 @@ if (!window.isContentScriptLoaded) {
   function trackWastedTime() {
     let lastTime = Date.now();
     let currentVideo = null;
-    let previousIsShorts = isShortsVideo();
+    // let previousIsShorts = isShortsVideo();
 
     setInterval(() => {
       const isShorts = isShortsVideo();
 
       // Reload if switched between Shorts and Regular videos.
-      if (isShorts !== previousIsShorts) {
-        previousIsShorts = isShorts;
-        console.log("Switching between Shorts and Regular. Reloading...");
-        window.location.reload();
-      }
+      // if (isShorts !== previousIsShorts) {
+      //   previousIsShorts = isShorts;
+      //   console.log("Switching between Shorts and Regular. Reloading...");
+      //   // window.location.reload();
+      // }
 
-
-      if (currentUrl !== window.location.href && (isShorts || currentVideoId !== getVideoId())) {
+      if (currentUrl !== window.location.href && currentVideoId !== getVideoId()) {
         currentUrl = window.location.href;
         currentVideoId = getVideoId();
 
@@ -621,17 +440,13 @@ if (!window.isContentScriptLoaded) {
     trackWastedTime();
 
 
+    // chrome.storage.local.set({ youtube_apiKey: "" }, () => {
+    //   console.log("API key has been saved to chrome.storage.local.");
+    // });
+
     console.log("window.checkStorage():");
     window.checkStorage();
-    initializePreferenceReport();
-
-    // chrome.storage.local.set({ youtube_apiKey: "" }, () => {
-    //   console.log("YOUTUBE API key has been saved to chrome.storage.local.");
-    // });
-    // chrome.storage.local.set({ chatgpt_apiKey: "" }, () => {
-    //   console.log("CHATGPT API key has been saved to chrome.storage.local.");
-    // });
-
   }
+
   initializeObserver();
 }
