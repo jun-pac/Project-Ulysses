@@ -1,78 +1,132 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>YouTube Time Saver</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Arial', sans-serif;
       padding: 20px;
-      width: 300px;
-      border-radius: 15px; /* Rounded corners for the popup */
-      background: linear-gradient(to bottom, #f3f4f6, #e0e7ff); /* Subtle gradient background */
+      width: 320px;
+      /* Increased width for better spacing */
+      border-radius: 15px;
+      /* Rounded corners for the popup */
+      background: linear-gradient(to bottom, #f3f4f6, #e0e7ff);
+      /* Subtle gradient background */
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      /* Hide any overflow on the body */
     }
 
     h2 {
       text-align: center;
-      color: #4a5568; /* Darker gray for the header */
+      color: #333;
+      /* Darker gray for the header */
+      font-size: 24px;
+      /* Larger font size */
+      margin-bottom: 20px;
+    }
+
+    p {
+      font-size: 16px;
+      color: #555;
     }
 
     button {
-      padding: 10px;
-      font-size: 14px;
+      padding: 12px;
+      font-size: 16px;
       cursor: pointer;
-      margin: 10px 0;
-      width: 100%; /* Full-width buttons */
+      margin: 15px 0;
+      width: 100%;
+      /* Full-width buttons */
       border: none;
-      border-radius: 15px; /* Rounded buttons */
+      border-radius: 10px;
+      /* Rounded buttons */
       color: white;
-      background: linear-gradient(to right, #38a169, #48bb78); /* Green gradient */
+      background: linear-gradient(to right, #38a169, #48bb78);
+      /* Green gradient */
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       transition: background 0.3s ease, transform 0.2s ease;
     }
 
     button:hover {
-      background: linear-gradient(to right, #2f855a, #38a169); /* Darker green on hover */
-      transform: scale(1.05); /* Slight scale-up on hover */
+      background: linear-gradient(to right, #2f855a, #38a169);
+      /* Darker green on hover */
+      transform: scale(1.05);
+      /* Slight scale-up on hover */
     }
 
-    #stats {
-      margin-top: 20px;
-      display: none; /* Initially hidden */
+    /* Content sections */
+    .content-section {
+      display: none;
+      /* Initially hidden */
+      margin-top: 10px;
     }
 
-    #graphContainer {
-      display: none; /* Initially hidden */
-      margin: 20px 0;
-      height: 150px;
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-around;
-      border: 1px solid #cbd5e0; /* Light border */
+    /* Scrollable content areas with updated design */
+    .scrollable {
+      max-height: 250px;
+      /* Increased height for content blocks */
+      overflow-y: auto;
+      /* Enable scrolling */
+      padding: 15px;
+      background-color: #f7fafc;
       border-radius: 10px;
-      background-color: #edf2f7; /* Light gray background */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Table design for preference report */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 16px;
+    }
+
+    th,
+    td {
       padding: 10px;
+      text-align: left;
     }
 
-    .bar {
-      width: 30px; /* Narrower bars */
-      border-radius: 5px;
-      transition: height 0.3s ease;
-      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    th {
+      background-color: #e2e8f0;
+      color: #2d3748;
     }
 
-    .bar.wasted {
-      background: linear-gradient(to right, #fc8181, #f56565); /* Gradient for wasted time */
+    td {
+      background-color: #edf2f7;
+      color: #4a5568;
     }
 
-    .bar.regular {
-      background: linear-gradient(to right, #68d391, #48bb78); /* Gradient for regular time */
+    /* Highlighted rating colors */
+    .rating-low {
+      color: #e53e3e;
+      /* Red for low rating */
+      font-weight: bold;
     }
 
-    p {
+    .rating-medium {
+      color: #dd6b20;
+      /* Orange for medium rating */
+      font-weight: bold;
+    }
+
+    .rating-high {
+      color: #38a169;
+      /* Green for high rating */
+      font-weight: bold;
+    }
+
+    .channel-name {
+      font-size: 18px;
+      font-weight: bold;
+      color: #2b6cb0;
+      /* Blue for channel names */
+    }
+
+    .video-title {
       font-size: 14px;
-      margin: 5px 0;
-      color: #4a5568; /* Dark gray for text */
+      color: #4a5568;
     }
 
     #shareSection {
@@ -81,32 +135,50 @@
     }
 
     #shareButton {
-      padding: 10px;
-      font-size: 14px;
+      padding: 12px;
+      font-size: 16px;
       cursor: pointer;
       border: none;
-      border-radius: 15px;
+      border-radius: 10px;
       color: white;
-      background: linear-gradient(to right, #3182ce, #63b3ed); /* Blue gradient */
+      background: linear-gradient(to right, #3182ce, #63b3ed);
+      /* Blue gradient */
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       transition: background 0.3s ease, transform 0.2s ease;
     }
 
     #shareButton:hover {
-      background: linear-gradient(to right, #2b6cb0, #4299e1); /* Darker blue on hover */
+      background: linear-gradient(to right, #2b6cb0, #4299e1);
+      /* Darker blue on hover */
       transform: scale(1.05);
     }
   </style>
 </head>
+
 <body>
   <h2>YouTube Time Saver</h2>
   <p>Track and analyze your YouTube viewing habits.</p>
 
   <button id="showStats">Show Stats</button>
+  <div id="stats" class="content-section"></div>
 
-  <div id="graphContainer"></div>
+  <button id="showRatedVideos">Show Rated Videos</button>
+  <div id="ratedVideos" class="content-section scrollable">
+    <table>
+      <thead>
+        <tr>
+          <th>Channel</th>
+          <th>Video Title</th>
+          <th>Rating</th>
+        </tr>
+      </thead>
+      <tbody id="ratedVideosBody"></tbody>
+    </table>
+  </div>
 
-  <div id="stats"></div>
+
+  <button id="showPreferenceReport">Show Preference Report</button>
+  <div id="preferenceReport" class="content-section scrollable"></div>
 
   <button id="resetButton">Reset</button>
 
@@ -117,4 +189,5 @@
 
   <script src="popup.js"></script>
 </body>
+
 </html>
