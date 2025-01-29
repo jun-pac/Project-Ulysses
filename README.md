@@ -43,7 +43,30 @@ The Rated Videos section in popup displays the channel name, video title, and ra
 
 6. Reset Button   
 The popup includes a reset button to clear all tracked time data.
-   
+
+
+## Privacy Policy 
+1. Information We Collect
+This extension collects the following data:   
+YouTube Video IDs: We track the video IDs of the content you watch to analyze viewing habits.   
+Preference Report: The extension categorizes videos into 20 different types and updates your preference report based on your ratings.
+
+2. How We Use the Data   
+The preference report is processed using OpenAI's API to help determine whether a video is considered "wasted time" or not.   
+The collected video IDs are only used locally to track user behavior and are not stored on any external servers.   
+
+3. Data Sharing   
+We do not share any collected data with third parties.   
+The preference report is sent to OpenAI API for processing, but we do not store any user data externally.   
+
+4. Data Storage & Security   
+All collected data is stored locally on your device using Chrome's chrome.storage.local.   
+The extension does not transmit or store data on external servers, except when updating the preference report via OpenAI API.   
+
+5. Contact   
+If you have any questions regarding this privacy policy, please contact us at millipede306@gmail.com.
+
+
    
 ## Future Development Plans
 1. Progressive Warnings   
