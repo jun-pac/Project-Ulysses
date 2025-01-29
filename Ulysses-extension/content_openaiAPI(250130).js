@@ -318,7 +318,7 @@ if (!window.isContentScriptLoaded) {
     }
   }
 
-  // Function to retrieve preferenceReport from Chrome Storage
+  // Function to retrieve preferenceReport and apiKeys from Chrome Storage
   function getStoredData(keys) {
     return new Promise((resolve, reject) => {
       chrome.storage.local.get(keys, (result) => {
@@ -376,17 +376,14 @@ if (!window.isContentScriptLoaded) {
     currentVideoId = videoId;
 
     try {
-      // const { youtube_apiKey } = await getStoredData(["youtube_apiKey"]);
-      // console.log("youtube_apiKey: " + youtube_apiKey);
-      // const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${youtube_apiKey}`;
-      // const response = await fetch(apiUrl);
-      // if (!response.ok) {
-      //   throw new Error(`API request failed with status ${response.status}`);
-      // }
-      const response = await fetch(`https://7r8wl7aqi9.execute-api.ap-southeast-2.amazonaws.com/dev/video-details?videoId=${videoId}`);
+      const { youtube_apiKey } = await getStoredData(["youtube_apiKey"]);
+      console.log("youtube_apiKey: " + youtube_apiKey);
+      const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${youtube_apiKey}`;
+      const response = await fetch(apiUrl);
       if (!response.ok) {
-        throw new Error("Failed to fetch video details");
+        throw new Error(`API request failed with status ${response.status}`);
       }
+
       const data = await response.json();
 
       if (data.items.length === 0) {
@@ -458,7 +455,7 @@ if (!window.isContentScriptLoaded) {
 
     saveRating(videoDetails, userRating);
 
-    const { preferenceReport } = await getStoredData(["preferenceReport"]);
+    const { preferenceReport, chatgpt_apiKey } = await getStoredData(["preferenceReport", "chatgpt_apiKey"]);
     const prompt = `The current user's preference report is as follows:
   ${JSON.stringify(preferenceReport, null, 2)}
 
@@ -476,17 +473,21 @@ if (!window.isContentScriptLoaded) {
   
   Respond with ONLY the updated preference report in valid JSON format without any additional explanation or text.`;
 
-    const messages = [
-      { role: "system", content: "You are an assistant designed to update user preference reports accurately based on video details and ratings." },
-      { role: "user", content: prompt },
-    ];
 
-    const response = await fetch("https://7r8wl7aqi9.execute-api.ap-southeast-2.amazonaws.com/dev/api/chatgpt", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${chatgpt_apiKey}`,
       },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.1,
+        messages: [
+          { role: "system", content: "You are an assistant designed to update user preference reports accurately based on video details and ratings." },
+          { role: "user", content: prompt },
+        ],
+      }),
     });
 
     const data = await response.json();
@@ -537,13 +538,13 @@ if (!window.isContentScriptLoaded) {
       }
       const average = count > 0 ? sum / count : 3.0; // Default average to 3.0 if count is 0
       const deviation = average - 3.0; // Deviation from the neutral point
-      console.log("Normalization... current average preference: ", average)
+      console.log("Normalization... current average preference: ",average)
       // Compute adjustment value (rounded to nearest 0.1 step)
       const adjustment = Math.sign(deviation) * Math.floor(Math.abs(deviation) / 0.01) * 0.01;
 
       for (const key in preferenceReport) {
         let value = preferenceReport[key] - adjustment;
-        preferenceReport[key] = Math.round(100 * Math.min(Math.max(value, 1.0), 5.0)) / 100;
+        preferenceReport[key] = Math.round(100*Math.min(Math.max(value, 1.0), 5.0))/100;
       }
 
       chrome.storage.local.set({ preferenceReport }, () => {
@@ -567,7 +568,7 @@ if (!window.isContentScriptLoaded) {
     console.log("isWastingVideo description : ", description);
     console.log("isWastingVideo lengthInSeconds : ", lengthInSeconds);
 
-    const { preferenceReport } = await getStoredData(["preferenceReport"]);
+    const { preferenceReport, chatgpt_apiKey } = await getStoredData(["preferenceReport", "chatgpt_apiKey"]);
 
     const prompt = `The user's current preference report is as follows:
   ${JSON.stringify(preferenceReport, null, 2)}
@@ -586,19 +587,21 @@ if (!window.isContentScriptLoaded) {
   - Respond with ONLY the result as a JSON object:
   { "is_waste": 1 } if the video is a wasted video, or { "is_waste": 0 } if it is not.`;
 
-    const messages = [
-      { role: "system", content: "You are an assistant trained to determine if videos align with user preferences or are a waste of time." },
-      { role: "user", content: prompt },
-    ];
-
-    const response = await fetch("https://7r8wl7aqi9.execute-api.ap-southeast-2.amazonaws.com/dev/api/chatgpt", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${chatgpt_apiKey}`,
       },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.1,
+        messages: [
+          { role: "system", content: "You are an assistant trained to determine if videos align with user preferences or are a waste of time." },
+          { role: "user", content: prompt },
+        ],
+      }),
     });
-
 
     const data = await response.json();
     try {
