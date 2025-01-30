@@ -24,8 +24,8 @@ if (!window.isContentScriptLoaded) {
       timerDiv = document.createElement("div");
       timerDiv.id = "shortsTimer";
       timerDiv.style.position = "fixed";
-      timerDiv.style.top = "35%";
-      timerDiv.style.left = "50%";
+      timerDiv.style.top = "45%";
+      timerDiv.style.left = "80%";
       timerDiv.style.transform = "translateX(-50%)";
       timerDiv.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
       timerDiv.style.color = "white";
@@ -91,7 +91,7 @@ if (!window.isContentScriptLoaded) {
       document.body.appendChild(timerDiv);
 
       // Make the timer draggable
-      makeTimerDraggable(timerDiv);
+      makeDraggable(timerDiv, "timerPosition");
 
       // Load saved position from storage
       chrome.storage.local.get(["timerPosition"], function (result) {
@@ -101,6 +101,7 @@ if (!window.isContentScriptLoaded) {
           timerDiv.style.transform = "none";
         }
       });
+
       // CSS animation for rotating dots
       const styleSheet = document.createElement("style");
       styleSheet.textContent = `
@@ -113,37 +114,33 @@ if (!window.isContentScriptLoaded) {
     }
   }
 
-  // Function to make the timer draggable
-  function makeTimerDraggable(element) {
+  function makeDraggable(element, storageKey) {
     let offsetX, offsetY, isDragging = false;
 
-    element.addEventListener("mousedown", function (e) {
+    element.addEventListener("mousedown", (e) => {
       isDragging = true;
       offsetX = e.clientX - element.getBoundingClientRect().left;
       offsetY = e.clientY - element.getBoundingClientRect().top;
-      element.style.transition = "none";
     });
 
-    document.addEventListener("mousemove", function (e) {
+    document.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      element.style.left = `${e.clientX - offsetX}px`;
+      element.style.top = `${e.clientY - offsetY}px`;
+    });
+
+    document.addEventListener("mouseup", () => {
       if (isDragging) {
-        element.style.left = `${e.clientX - offsetX}px`;
-        element.style.top = `${e.clientY - offsetY}px`;
-        element.style.right = "auto";
+        isDragging = false;
+        chrome.storage.local.set({ [storageKey]: { top: element.style.top, left: element.style.left } });
       }
     });
 
-    document.addEventListener("mouseup", function () {
-      if (isDragging) {
-        isDragging = false;
-        element.style.transition = "0.2s ease-out";
-
-        // Save position in storage
-        chrome.storage.local.set({
-          timerPosition: {
-            top: element.style.top,
-            left: element.style.left
-          }
-        });
+    chrome.storage.local.get([storageKey], function (result) {
+      if (result[storageKey]) {
+        element.style.top = result[storageKey].top;
+        element.style.left = result[storageKey].left;
+        element.style.transform = "none";
       }
     });
   }
@@ -188,7 +185,8 @@ if (!window.isContentScriptLoaded) {
     ratingDiv.id = "ratingDiv";
     ratingDiv.style.position = "fixed";
     ratingDiv.style.top = "10%";
-    ratingDiv.style.right = "10px";
+    ratingDiv.style.left = "80%";
+    ratingDiv.style.transform = "translateX(-50%)";
     ratingDiv.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
     ratingDiv.style.boxShadow = "0px 4px 12px rgba(0, 0, 0, 0.2)";
     ratingDiv.style.padding = "15px"; // Reduced padding for a smaller box
@@ -207,6 +205,13 @@ if (!window.isContentScriptLoaded) {
     text.style.marginBottom = "15px"; // Reduced margin for compactness
     text.style.color = "#333";
     ratingDiv.appendChild(text);
+
+    const subText = document.createElement("p");
+    subText.textContent = "Ratings will be used to personalize waste video detection.";
+    subText.style.fontSize = "12px";
+    subText.style.marginBottom = "10px"; // Reduced margin for compactness
+    subText.style.color = "#666";
+    ratingDiv.appendChild(subText);
 
     // Create stars with labels
     const starContainer = document.createElement("div");
@@ -268,6 +273,18 @@ if (!window.isContentScriptLoaded) {
 
     // Add to the body
     document.body.appendChild(ratingDiv);
+    
+    // Make the timer draggable
+    makeDraggable(ratingDiv, "ratingPosition");
+
+    // Load saved position from storage
+    chrome.storage.local.get(["ratingPosition"], function (result) {
+      if (result.ratingPosition) {
+        ratingDiv.style.top = result.timerPosition.top;
+        ratingDiv.style.left = result.timerPosition.left;
+        ratingDiv.style.transform = "none";
+      }
+    });
   }
 
   // Show a message after rating
@@ -308,7 +325,7 @@ if (!window.isContentScriptLoaded) {
   function removeRatingUI() {
     if (ratingDiv) {
       ratingDiv.remove(); // Remove the timer from the DOM
-      ratingDiv = null;   // Reset the timerDiv reference
+      ratingDiv = null;   // Reset the ratingDiv reference
     }
   }
 
@@ -879,21 +896,8 @@ if (!window.isContentScriptLoaded) {
 
 
 
-
-
   function initializeObserver() {
-    if (!observer) {
-      observer = new MutationObserver(() => {
-        highlightShortsVideos();
-      });
-
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
-
-    // Initial runs
-    highlightShortsVideos();
     trackWastedTime();
-
 
     console.log("window.checkStorage():");
     window.checkStorage();
@@ -906,7 +910,9 @@ if (!window.isContentScriptLoaded) {
     // chrome.storage.local.set({ chatgpt_apiKey: "" }, () => {
     //   console.log("CHATGPT API key has been saved to chrome.storage.local.");
     // });
-
+    // window.removeStorageKey("ratingPosition");
+    // window.removeStorageKey("timerPosition");
   }
+  
   initializeObserver();
 }

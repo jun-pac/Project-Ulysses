@@ -25,7 +25,7 @@ function updateStats() {
 
     // Update text below the graph
     statsDiv.innerHTML = `
-      <p><strong>Wasted Time on Shorts:</strong> ${wastedTime.toFixed(2)} seconds</p>
+      <p><strong>Time on Wasted Videos:</strong> ${wastedTime.toFixed(2)} seconds</p>
       <p><strong>Time on Regular Videos:</strong> ${regularTime.toFixed(2)} seconds</p>
     `;
   });
