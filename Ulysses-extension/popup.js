@@ -3,42 +3,91 @@ let isStatsVisible = false;
 let areRatedVideosVisible = false;
 let isPreferenceReportVisible = false;
 
-// Function to update the stats and graph
+function printFormatTime(time) {
+  if (time > 3600) {
+    const hours = Math.floor(time / 3600);
+    const minutes = String(Math.floor((time % 3600) / 60)).padStart(2, "0");
+    const seconds = String(Math.floor(time % 60)).padStart(2, "0");
+    return `${hours}:${minutes}:${seconds}`;
+  } else if (time > 60) {
+    const minutes = String(Math.floor(time / 60));
+    const seconds = String(Math.floor(time % 60)).padStart(2, "0");
+    return `${minutes}:${seconds}`;
+  } else {
+    return String(Math.floor(time)).padStart(2, "0");
+  }
+}
+
 function updateStats() {
   chrome.storage.local.get(["wastedTime", "regularTime"], (result) => {
-    const statsDiv = document.getElementById("stats");
-    const graphContainer = document.getElementById("graphContainer");
-
     const wastedTime = result.wastedTime || 0; // Time spent on Shorts
     const regularTime = result.regularTime || 0; // Time spent on regular videos
+    const totalTime = wastedTime + regularTime;
 
-    // Calculate graph heights (scale within 0 to 100%)
-    const maxTime = 900; // Cap at 0.25 hour for scaling
-    const wastedGraphHeight = (wastedTime / (maxTime + wastedTime)) * 100;
-    const regularGraphHeight = (regularTime / (maxTime + regularTime)) * 100;
+    // Set the text content and colors
+    const wastedTimeColor = "rgb(255, 66, 66)"; // More vivid red for wasted time
+    const regularTimeColor = "rgb(56, 161, 105)"; // More vivid green for regular time
 
-    // Update graph
-    graphContainer.innerHTML = `
-      <div class="bar wasted" style="height: ${wastedGraphHeight}%;"></div>
-      <div class="bar regular" style="height: ${regularGraphHeight}%;"></div>
-    `;
+    document.getElementById("wastedTimeText").textContent = printFormatTime(wastedTime);
+    document.getElementById("regularTimeText").textContent = printFormatTime(regularTime);
+    document.getElementById("totalTimeText").textContent = printFormatTime(totalTime);
 
-    // Update text below the graph
-    statsDiv.innerHTML = `
-      <p><strong>Time on Wasted Videos:</strong> ${wastedTime.toFixed(2)} seconds</p>
-      <p><strong>Time on Regular Videos:</strong> ${regularTime.toFixed(2)} seconds</p>
-    `;
+    // Set the labels with vivid colors
+    document.getElementById("wastedTimeLabel").innerHTML = `<span style="color:${wastedTimeColor}; font-weight: bold;">Wasted Videos</span>`;
+    document.getElementById("regularTimeLabel").innerHTML = `<span style="color:${regularTimeColor}; font-weight: bold;">Regular Videos</span>`;
+
+    // Draw the pie chart
+    drawPieChart(wastedTime, regularTime, wastedTimeColor, regularTimeColor);
   });
+}
+
+// Function to draw a pie chart with thinner border and smaller size
+function drawPieChart(wastedTime, regularTime, wastedTimeColor, regularTimeColor) {
+  const canvas = document.getElementById("pieChart");
+  const ctx = canvas.getContext("2d");
+
+  // Add a small value to avoid zero division
+  wastedTime = wastedTime || 1;
+  regularTime = regularTime || 1;
+
+  // Calculate the total time for pie chart
+  const total = wastedTime + regularTime;
+
+  // Define the angles for the slices
+  const wastedAngle = (wastedTime / total) * 2 * Math.PI;
+  const regularAngle = (regularTime / total) * 2 * Math.PI;
+
+  // Clear the canvas before drawing
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw the wasted time slice (Red)
+  ctx.beginPath();
+  ctx.moveTo(100, 100); // Move to center of smaller pie chart
+  ctx.arc(100, 100, 85, 0, wastedAngle); // Draw the arc for wasted time
+  ctx.fillStyle = wastedTimeColor; // More vivid red color
+  ctx.fill();
+
+  // Draw the regular time slice (Green)
+  ctx.beginPath();
+  ctx.moveTo(100, 100);
+  ctx.arc(100, 100, 85, wastedAngle, wastedAngle + regularAngle); // Draw the arc for regular time
+  ctx.fillStyle = regularTimeColor; // More vivid green color
+  ctx.fill();
+
+  // Optional: No border or thin border around the pie chart
+  // ctx.beginPath();
+  // ctx.arc(100, 100, 85, 0, 2 * Math.PI);
+  // ctx.lineWidth = 2; // Thin border width
+  // ctx.strokeStyle = "#000000"; // Black border (can be removed if not needed)
+  // ctx.stroke();
 }
 
 // Function to toggle stats visibility
 document.getElementById("showStats").addEventListener("click", () => {
   const statsDiv = document.getElementById("stats");
-  const graphContainer = document.getElementById("graphContainer");
   isStatsVisible = !isStatsVisible;
 
   statsDiv.style.display = isStatsVisible ? "block" : "none";
-  graphContainer.style.display = isStatsVisible ? "flex" : "none"; // Show or hide graph
   const buttonText = isStatsVisible ? "Hide Stats" : "Show Stats";
   document.getElementById("showStats").textContent = buttonText;
 
@@ -166,11 +215,10 @@ setInterval(() => {
   if (isStatsVisible) {
     updateStats();
   }
-}, 100); // Update every 100ms
+}, 1000); // Update every 100ms
 
 // Initial setup
 document.getElementById("stats").style.display = "none"; // Hide stats by default
-document.getElementById("graphContainer").style.display = "none"; // Hide graph by default
 document.getElementById("ratedVideos").style.display = "none"; // Hide rated videos by default
 document.getElementById("preferenceReport").style.display = "none"; // Hide preference report by default
 updateStats();

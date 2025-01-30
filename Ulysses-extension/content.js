@@ -984,7 +984,7 @@ if (!window.isContentScriptLoaded) {
         });
 
         chrome.storage.local.set({ regularTime: 0, wastedTime: 0, lastResetTime: now.toISOString() });
-      
+
         // Reset alerted message
         for (const threshold of timeThresholds) {
           chrome.storage.local.set({ [`alerted_${threshold.message}`]: false });
@@ -1018,7 +1018,7 @@ if (!window.isContentScriptLoaded) {
 
   function initializeObserver() {
     trackWastedTime();
-    setInterval(resetDailyTimeTracking, 10*60*1000);
+    setInterval(resetDailyTimeTracking, 10 * 60 * 1000);
 
     console.log("window.checkStorage():");
     window.checkStorage();
@@ -1030,6 +1030,9 @@ if (!window.isContentScriptLoaded) {
     // });
     // chrome.storage.local.set({ chatgpt_apiKey: "" }, () => {
     //   console.log("CHATGPT API key has been saved to chrome.storage.local.");
+    // });
+    // chrome.storage.local.set({ wastedTime: 1650.0 }, () => {
+    //   console.log("wastedTime updated.");
     // });
     // window.removeStorageKey("ratingPosition");
     // window.removeStorageKey("timerPosition");
