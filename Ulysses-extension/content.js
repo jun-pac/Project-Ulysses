@@ -16,6 +16,17 @@ if (!window.isContentScriptLoaded) {
   let buttonDiv = null;
   let ratingMessageTimeout = null;
 
+  const timeThresholds = [
+    { time: 30 * 60, message: "30 minutes", suggestion: "How about a quick 5-minute stretch? You'd be amazed how much more energized you'll feel!" },
+    { time: 60 * 60, message: "1 hour", suggestion: "You could knock out a chapter of that book you've been meaning to read!" },
+    { time: 2 * 60 * 60, message: "2 hours", suggestion: "Consider taking a walk or spending a few minutes journaling. It can help you reset." },
+    { time: 3 * 60 * 60, message: "3 hours", suggestion: "Maybe it's time to dive into that hobby you've been meaning to explore." },
+    { time: 4 * 60 * 60, message: "4 hours", suggestion: "How about spending a few minutes organizing your space or planning your day?" },
+    { time: 5 * 60 * 60, message: "5 hours", suggestion: "Maybe a 20-minute walk could give you a boost." },
+    { time: 6 * 60 * 60, message: "6 hours", suggestion: "After six hours, perhaps a quick workout or a power nap might refresh you!" },
+    { time: 7 * 60 * 60, message: "7 hours", suggestion: "A quick stretch or breathing exercises could help clear your head." },
+    { time: 8 * 60 * 60, message: "8 hours", suggestion: "Maybe take a break and do something productive like cooking or organizing." }
+  ];
 
 
   function createTimer() {
@@ -57,8 +68,8 @@ if (!window.isContentScriptLoaded) {
         dot.style.animation = `fadeInOut 2s linear infinite ${i * 0.125}s`;
 
         const angle = (i / 16) * 2 * Math.PI;
-        const x = 47 + 50 * Math.cos(angle);
-        const y = 56 + 50 * Math.sin(angle);
+        const x = 47 + 55 * Math.cos(angle);
+        const y = 56 + 55 * Math.sin(angle);
         dot.style.left = `${x}px`;
         dot.style.top = `${y}px`;
 
@@ -160,7 +171,7 @@ if (!window.isContentScriptLoaded) {
         const seconds = String(Math.floor(wastedTime % 60)).padStart(2, "0");
         timeDisplay.textContent = `${minutes}:${seconds}`;
       } else {
-        timeDisplay.textContent = `${wastedTime.toFixed(2)}sec`;
+        timeDisplay.textContent = String(Math.floor(wastedTime)).padStart(2, "0");
       }
     }
   }
@@ -273,7 +284,7 @@ if (!window.isContentScriptLoaded) {
 
     // Add to the body
     document.body.appendChild(ratingDiv);
-    
+
     // Make the timer draggable
     makeDraggable(ratingDiv, "ratingPosition");
 
@@ -467,6 +478,53 @@ if (!window.isContentScriptLoaded) {
       }, 300);
     }
   }
+
+
+  // Function to show the warning message UI
+  function showAlertMessage(timeMessage, suggestion) {
+    // Create the container for the warning message
+    const alertContainer = document.createElement('div');
+    alertContainer.style.position = 'fixed';
+    alertContainer.style.top = '10px';
+    alertContainer.style.left = '50%';
+    alertContainer.style.transform = 'translateX(-50%)';
+    alertContainer.style.backgroundColor = '#ffcc00';
+    alertContainer.style.color = '#333';
+    alertContainer.style.padding = '15px';
+    alertContainer.style.borderRadius = '10px';
+    alertContainer.style.zIndex = '9999';
+    alertContainer.style.fontSize = '18px';
+    alertContainer.style.textAlign = 'center';
+    alertContainer.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    alertContainer.style.opacity = '1';
+    alertContainer.style.transition = 'opacity 1s ease-out';
+
+    // Add the time message in larger, bold text
+    const timeMessageElem = document.createElement('h2');
+    timeMessageElem.textContent = `You've watched YouTube for ${timeMessage}!`;
+    timeMessageElem.style.fontSize = '24px';
+    timeMessageElem.style.fontWeight = 'bold';
+
+    // Add the suggestion text
+    const suggestionElem = document.createElement('p');
+    suggestionElem.textContent = suggestion;
+
+    // Append the elements to the container
+    alertContainer.appendChild(timeMessageElem);
+    alertContainer.appendChild(suggestionElem);
+
+    // Append the alert container to the body
+    document.body.appendChild(alertContainer);
+
+    // Remove the alert after 5 seconds
+    setTimeout(() => {
+      alertContainer.style.opacity = '0'; // Fade out
+      setTimeout(() => {
+        alertContainer.remove(); // Remove the alert from the DOM
+      }, 1000); // Wait for the fade-out transition to complete
+    }, 5000); // Keep the message for 5 seconds
+  }
+
 
   // Function to retrieve preferenceReport from Chrome Storage
   function getStoredData(keys) {
@@ -853,24 +911,86 @@ if (!window.isContentScriptLoaded) {
         const currentTime = Date.now();
         const increment = (currentTime - lastTime) / 1000; // Convert ms to seconds
         lastTime = currentTime;
+        chrome.storage.local.get(["wastedTime", "regularTime"], (result) => {
+          const totalTime = (result.wastedTime || 0) + (result.regularTime || 0);
 
-        if (isWaste) {
-          chrome.storage.local.get(["wastedTime", "regularTime"], (result) => {
+          // Check if total time exceeds any threshold and message hasn't been shown yet
+          for (const threshold of timeThresholds) {
+            if (totalTime >= threshold.time) {
+              // Check if the message for this threshold hasn't been displayed yet
+              chrome.storage.local.get([`alerted_${threshold.message}`], (alertData) => {
+                if (!alertData[`alerted_${threshold.message}`]) {
+                  // Display the message with the activity suggestion
+                  showAlertMessage(threshold.message, threshold.suggestion);
+
+                  // Mark this threshold as alerted to avoid showing it again
+                  chrome.storage.local.set({ [`alerted_${threshold.message}`]: true });
+                }
+              });
+            }
+          }
+
+
+          if (isWaste) {
             const wastedTime = (result.wastedTime || 0) + increment;
-            const regularTime = (result.regularTime || 0);
             updateWastedTimeDisplay(wastedTime);
             chrome.storage.local.set({ wastedTime });
-          });
-        } else {
-          chrome.storage.local.get(["regularTime"], (result) => {
+          } else {
             const regularTime = (result.regularTime || 0) + increment;
             chrome.storage.local.set({ regularTime });
-          });
-        }
+          }
+        });
       } else {
         lastTime = Date.now(); // Update lastTime to prevent over-counting
       }
-    }, 100); // Update every 1000ms
+    }, 1000); // Update every 1000ms
+  }
+
+
+  function getKoreanTime() {
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const koreaTime = new Date(utc + 9 * 60 * 60000);
+    return koreaTime;
+  }
+
+  function resetDailyTimeTracking() {
+    chrome.storage.local.get(["lastResetTime", "regularTime", "wastedTime"], (data) => {
+      const now = getKoreanTime();
+
+      const lastResetTime = data.lastResetTime ? new Date(data.lastResetTime) : new Date(0);
+
+      const last5AM = new Date(now);
+      last5AM.setHours(5, 0, 0, 0);
+      if (now < last5AM) {
+        last5AM.setDate(last5AM.getDate() - 1);
+      }
+
+      console.log("resetDailyTimeTracking called | now: ", now.toISOString(), " | last5AM: ", last5AM, " | lastResetTime:", lastResetTime);
+
+      if (lastResetTime < last5AM) {
+        const record = {
+          date: last5AM.toISOString().split("T")[0],
+          regularTime: data.regularTime || 0,
+          wastedTime: data.wastedTime || 0,
+        };
+
+        console.log("Today's record saved!!! ", record);
+
+        chrome.storage.local.get(["timeRecords"], (storedData) => {
+          const timeRecords = storedData.timeRecords || [];
+          timeRecords.push(record);
+          chrome.storage.local.set({ timeRecords });
+        });
+
+        chrome.storage.local.set({ regularTime: 0, wastedTime: 0, lastResetTime: now.toISOString() });
+      
+        // Reset alerted message
+        for (const threshold of timeThresholds) {
+          chrome.storage.local.set({ [`alerted_${threshold.message}`]: false });
+        }
+      }
+    });
   }
 
 
@@ -898,6 +1018,7 @@ if (!window.isContentScriptLoaded) {
 
   function initializeObserver() {
     trackWastedTime();
+    setInterval(resetDailyTimeTracking, 10*60*1000);
 
     console.log("window.checkStorage():");
     window.checkStorage();
@@ -912,7 +1033,16 @@ if (!window.isContentScriptLoaded) {
     // });
     // window.removeStorageKey("ratingPosition");
     // window.removeStorageKey("timerPosition");
+    // window.removeStorageKey("chatgpt_apiKey");
+    // window.removeStorageKey("youtube_apiKey");
+
+
+    // For test
+    // showAlertMessage("3 hours", "How about spending a few minutes organizing your space or planning your day?");
+    // for (const threshold of timeThresholds) {
+    //   chrome.storage.local.set({ [`alerted_${threshold.message}`]: false });
+    // }
   }
-  
+
   initializeObserver();
 }

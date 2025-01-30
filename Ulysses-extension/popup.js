@@ -152,7 +152,8 @@ document.getElementById("resetButton").addEventListener("click", () => {
 
 // Share button logic
 document.getElementById("shareButton").addEventListener("click", () => {
-  const shareUrl = "https://chrome.google.com/webstore/detail/YOUR_EXTENSION_ID"; // Replace with the actual extension URL
+  // const shareUrl = "https://chrome.google.com/webstore/detail/YOUR_EXTENSION_ID"; // Replace with the actual extension URL
+  const shareUrl = "https://github.com/jun-pac/Project-Ulysses";
   navigator.clipboard.writeText(shareUrl).then(() => {
     alert("The link to download the extension has been copied to your clipboard. Share it with your friends!");
   }).catch(err => {
