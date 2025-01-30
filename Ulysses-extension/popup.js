@@ -95,13 +95,13 @@ document.getElementById("showStats").addEventListener("click", () => {
 });
 
 
-// Reset button logic
-document.getElementById("resetButton").addEventListener("click", () => {
-  chrome.storage.local.set({ wastedTime: 0, regularTime: 0 }, () => {
-    console.log("Time stats have been reset.");
-    updateStats(); // Immediately update the display
-  });
-});
+// // Reset button logic
+// document.getElementById("resetButton").addEventListener("click", () => {
+//   chrome.storage.local.set({ wastedTime: 0, regularTime: 0 }, () => {
+//     console.log("Time stats have been reset.");
+//     updateStats(); // Immediately update the display
+//   });
+// });
 
 
 // Function to toggle rated videos visibility
@@ -118,20 +118,23 @@ document.getElementById("showRatedVideos").addEventListener("click", () => {
     // Fetch and display rated videos
     chrome.storage.local.get("videoRatings", (result) => {
       const videoRatings = result.videoRatings || {};
+    
       const ratedVideosContent = Object.values(videoRatings)
+        .sort((a, b) => b.rating - a.rating) 
         .map(video => {
           const ratingClass = getRatingClass(video.rating);
           return `
             <tr>
-              <td style="color: #000000; font-size: 14px;">${video.channel}</td>
               <td style="color: #000000; font-size: 11px;">${video.title}</td>
+              <td style="color: #000000; font-size: 11px;">${video.channel}</td>
               <td style="text-align: center; font-size: 18px; color: ${ratingClass.color};">${video.rating}</td>
             </tr>
           `;
         })
         .join('');
+    
       document.getElementById("ratedVideosBody").innerHTML = ratedVideosContent;
-    });
+    });    
   } else {
     document.getElementById("ratedVideosBody").innerHTML = ''; // Clear the content when hidden
   }
@@ -166,7 +169,7 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
   if (isPreferenceReportVisible) {
     // Fetch and display preference report as a table
     chrome.storage.local.get("preferenceReport", (result) => {
-      const preferenceReport = result.preferenceReport || {};
+      const preferenceReport = result.preferenceReport || {};    
       const preferenceReportTable = `
         <table>
           <thead>
@@ -174,6 +177,7 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
           </thead>
           <tbody>
             ${Object.entries(preferenceReport)
+              .sort((a, b) => b[1] - a[1]) 
               .map(([key, value]) => `
                 <tr>
                   <td>${key}</td>
@@ -185,7 +189,7 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
         </table>
       `;
       preferenceReportDiv.innerHTML = preferenceReportTable;
-    });
+    });    
   } else {
     preferenceReportDiv.innerHTML = ''; // Clear the content when hidden
   }
