@@ -16,27 +16,160 @@ if (!window.isContentScriptLoaded) {
   let buttonDiv = null;
   let ratingMessageTimeout = null;
 
-  // Create a visible timer on the page
+
+
   function createTimer() {
-    if (!timerDiv) {  // Only create the timer div if it doesn't already exist
+    if (!timerDiv) {
+      // Create the main timer container
       timerDiv = document.createElement("div");
       timerDiv.id = "shortsTimer";
       timerDiv.style.position = "fixed";
       timerDiv.style.top = "35%";
-      timerDiv.style.right = "10px";
+      timerDiv.style.left = "50%";
+      timerDiv.style.transform = "translateX(-50%)";
       timerDiv.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
       timerDiv.style.color = "white";
-      timerDiv.style.fontSize = "30px";
-      timerDiv.style.padding = "15px 25px";
+      timerDiv.style.fontSize = "24px";
+      timerDiv.style.padding = "15px";
       timerDiv.style.borderRadius = "12px";
       timerDiv.style.zIndex = "9999";
       timerDiv.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
       timerDiv.style.boxShadow = "0px 4px 15px rgba(0, 0, 0, 0.2)";
-      timerDiv.style.width = "auto";
+      timerDiv.style.textAlign = "center";
+      timerDiv.style.cursor = "move";
 
+      // Create the rotating dot animation container
+      const spinnerContainer = document.createElement("div");
+      spinnerContainer.style.position = "relative";
+      spinnerContainer.style.width = "100px";
+      spinnerContainer.style.height = "100px";
+      spinnerContainer.style.margin = "auto";
+
+      // Create the dots for circular animation
+      for (let i = 0; i < 16; i++) {
+        const dot = document.createElement("div");
+        dot.className = "loading-dot";
+        dot.style.position = "absolute";
+        dot.style.width = "8px";
+        dot.style.height = "8px";
+        dot.style.backgroundColor = "white";
+        dot.style.borderRadius = "50%";
+        dot.style.animation = `fadeInOut 2s linear infinite ${i * 0.125}s`;
+
+        const angle = (i / 16) * 2 * Math.PI;
+        const x = 47 + 50 * Math.cos(angle);
+        const y = 56 + 50 * Math.sin(angle);
+        dot.style.left = `${x}px`;
+        dot.style.top = `${y}px`;
+
+        spinnerContainer.appendChild(dot);
+      }
+
+      // Create the time display inside the animation
+      const timeDisplay = document.createElement("div");
+      timeDisplay.id = "wastedTimeDisplay";
+      timeDisplay.style.position = "absolute";
+      timeDisplay.style.width = "120px";
+      timeDisplay.style.top = "60%";
+      timeDisplay.style.left = "50%";
+      timeDisplay.style.transform = "translate(-50%, -50%)";
+      timeDisplay.style.fontSize = "24px";
+      timeDisplay.style.fontWeight = "bold";
+
+      spinnerContainer.appendChild(timeDisplay);
+
+      // Create the warning text
+      const warningText = document.createElement("div");
+      warningText.textContent = "You are wasting time!";
+      warningText.style.marginTop = "35px";
+      warningText.style.fontSize = "20px";
+      warningText.style.fontWeight = "bold";
+
+      // Append elements to the timer
+      timerDiv.appendChild(spinnerContainer);
+      timerDiv.appendChild(warningText);
       document.body.appendChild(timerDiv);
+
+      // Make the timer draggable
+      makeTimerDraggable(timerDiv);
+
+      // Load saved position from storage
+      chrome.storage.local.get(["timerPosition"], function (result) {
+        if (result.timerPosition) {
+          timerDiv.style.top = result.timerPosition.top;
+          timerDiv.style.left = result.timerPosition.left;
+          timerDiv.style.transform = "none";
+        }
+      });
+      // CSS animation for rotating dots
+      const styleSheet = document.createElement("style");
+      styleSheet.textContent = `
+        @keyframes fadeInOut {
+          0%, 100% { opacity: 0.0; }
+          50% { opacity: 1; }
+        }
+      `;
+      document.head.appendChild(styleSheet);
     }
   }
+
+  // Function to make the timer draggable
+  function makeTimerDraggable(element) {
+    let offsetX, offsetY, isDragging = false;
+
+    element.addEventListener("mousedown", function (e) {
+      isDragging = true;
+      offsetX = e.clientX - element.getBoundingClientRect().left;
+      offsetY = e.clientY - element.getBoundingClientRect().top;
+      element.style.transition = "none";
+    });
+
+    document.addEventListener("mousemove", function (e) {
+      if (isDragging) {
+        element.style.left = `${e.clientX - offsetX}px`;
+        element.style.top = `${e.clientY - offsetY}px`;
+        element.style.right = "auto";
+      }
+    });
+
+    document.addEventListener("mouseup", function () {
+      if (isDragging) {
+        isDragging = false;
+        element.style.transition = "0.2s ease-out";
+
+        // Save position in storage
+        chrome.storage.local.set({
+          timerPosition: {
+            top: element.style.top,
+            left: element.style.left
+          }
+        });
+      }
+    });
+  }
+
+
+  // Function to update the wasted time display
+  function updateWastedTimeDisplay(wastedTime) {
+    const timeDisplay = document.getElementById("wastedTimeDisplay");
+    if (timeDisplay) {
+      if (wastedTime > 3600) {
+        const hours = Math.floor(wastedTime / 3600);
+        const minutes = String(Math.floor((wastedTime % 3600) / 60)).padStart(2, "0");
+        const seconds = String(Math.floor(wastedTime % 60)).padStart(2, "0");
+        timeDisplay.textContent = `${hours}:${minutes}:${seconds}`;
+      } else if (wastedTime > 60) {
+        const minutes = String(Math.floor(wastedTime / 60));
+        const seconds = String(Math.floor(wastedTime % 60)).padStart(2, "0");
+        timeDisplay.textContent = `${minutes}:${seconds}`;
+      } else {
+        timeDisplay.textContent = `${wastedTime.toFixed(2)}sec`;
+      }
+    }
+  }
+
+
+
 
   // Remove the timer from the page
   function removeTimer() {
@@ -708,11 +841,7 @@ if (!window.isContentScriptLoaded) {
           chrome.storage.local.get(["wastedTime", "regularTime"], (result) => {
             const wastedTime = (result.wastedTime || 0) + increment;
             const regularTime = (result.regularTime || 0);
-            if (wastedTime > 600) {
-              timerDiv.textContent = `You are wasting time! ${Math.floor(wastedTime / 60)}min ${Math.floor(wastedTime - Math.floor(wastedTime / 60) * 60)}sec`;
-            } else {
-              timerDiv.textContent = `You are wasting time! ${wastedTime.toFixed(2)}sec`;
-            }
+            updateWastedTimeDisplay(wastedTime);
             chrome.storage.local.set({ wastedTime });
           });
         } else {
