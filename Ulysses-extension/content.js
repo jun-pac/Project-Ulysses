@@ -966,7 +966,7 @@ if (!window.isContentScriptLoaded) {
         last5AM.setDate(last5AM.getDate() - 1);
       }
 
-      console.log("resetDailyTimeTracking called | now: ", now.toISOString(), " | last5AM: ", last5AM, " | lastResetTime:", lastResetTime);
+      // console.log("resetDailyTimeTracking called | now: ", now.toISOString(), " | last5AM: ", last5AM, " | lastResetTime:", lastResetTime);
 
       if (lastResetTime < last5AM) {
         const record = {
@@ -1018,7 +1018,7 @@ if (!window.isContentScriptLoaded) {
 
   function initializeObserver() {
     trackWastedTime();
-    setInterval(resetDailyTimeTracking, 10 * 60 * 1000);
+    setInterval(resetDailyTimeTracking, 60 * 1000);
 
     console.log("window.checkStorage():");
     window.checkStorage();

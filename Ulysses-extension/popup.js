@@ -195,13 +195,13 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
   }
 });
 
-// Reset button logic
-document.getElementById("resetButton").addEventListener("click", () => {
-  chrome.storage.local.set({ wastedTime: 0, regularTime: 0 }, () => {
-    console.log("Time stats have been reset.");
-    updateStats(); // Immediately update the display
-  });
-});
+// // Reset button logic
+// document.getElementById("resetButton").addEventListener("click", () => {
+//   chrome.storage.local.set({ wastedTime: 0, regularTime: 0 }, () => {
+//     console.log("Time stats have been reset.");
+//     updateStats(); // Immediately update the display
+//   });
+// });
 
 // Share button logic
 document.getElementById("shareButton").addEventListener("click", () => {
