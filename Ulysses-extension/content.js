@@ -4,10 +4,10 @@ if (!window.isContentScriptLoaded) {
   window.isContentScriptLoaded = true;
 
   const HIGHLIGHT_COLOR = "rgba(255, 0, 0, 0.3)";
-  let observer;
   let currentUrl = null;
   let currentVideoId = null;
   let isWaste = null;
+  let isMovie = null;
   let initialrun = null;
 
   let timerDiv = null;
@@ -168,10 +168,11 @@ if (!window.isContentScriptLoaded) {
         timeDisplay.textContent = `${hours}:${minutes}:${seconds}`;
       } else if (wastedTime > 60) {
         const minutes = String(Math.floor(wastedTime / 60));
+        // const seconds = String((wastedTime % 60).toFixed(2)).padStart(2, "0");
         const seconds = String(Math.floor(wastedTime % 60)).padStart(2, "0");
         timeDisplay.textContent = `${minutes}:${seconds}`;
       } else {
-        timeDisplay.textContent = String(Math.floor(wastedTime)).padStart(2, "0");
+        timeDisplay.textContent = String((wastedTime).toFixed(2));
       }
     }
   }
@@ -354,6 +355,12 @@ if (!window.isContentScriptLoaded) {
         console.log("Rating saved:", ratings[videoDetails.videoId]);
       });
     });
+    if (rating === 1 || rating === 2) {
+      isWaste = true;
+    }
+    else if (rating === 4 || rating === 5) {
+      isWaste = false;
+    }
   }
 
   // Function to create the manual button
@@ -668,21 +675,21 @@ if (!window.isContentScriptLoaded) {
 
     const { preferenceReport } = await getStoredData(["preferenceReport"]);
     const prompt = `The current user's preference report is as follows:
-  ${JSON.stringify(preferenceReport, null, 2)}
+      ${JSON.stringify(preferenceReport, null, 2)}
 
-  Each factor in the preference report has a value between 1.0 and 5.0:
-  - A value of 3.0 represents an average interest in that factor.
-  - A value above 3.0 indicates a stronger preference or enjoyment of content that aligns with that factor.
-  - A value below 3.0 indicates a lower preference or a tendency to find such content less engaging or potentially a waste.
+      Each factor in the preference report has a value between 1.0 and 5.0:
+      - A value of 3.0 represents an average interest in that factor.
+      - A value above 3.0 indicates a stronger preference or enjoyment of content that aligns with that factor.
+      - A value below 3.0 indicates a lower preference or a tendency to find such content less engaging or potentially a waste.
 
-  Update the preference report based on the following new video details and user rating. Ensure changes are proportional to the rating (higher ratings cause larger adjustments):
-  - Video Title: "${videoDetails.title}"
-  - Channel: "${videoDetails.channel}"
-  - Description: "${videoDetails.description}"
-  - Length in seconds: ${videoDetails.lengthInSeconds}
-  - User Rating: ${userRating}
-  
-  Respond with ONLY the updated preference report in valid JSON format without any additional explanation or text.`;
+      Update the preference report based on the following new video details and user rating. Ensure changes are proportional to the rating (higher ratings cause larger adjustments):
+      - Video Title: "${videoDetails.title}"
+      - Channel: "${videoDetails.channel}"
+      - Description: "${videoDetails.description}"
+      - Length in seconds: ${videoDetails.lengthInSeconds}
+      - User Rating: ${userRating}
+      
+      Respond with ONLY the updated preference report in valid JSON format without any additional explanation or text.`;
 
     const messages = [
       { role: "system", content: "You are an assistant designed to update user preference reports accurately based on video details and ratings." },
@@ -767,32 +774,55 @@ if (!window.isContentScriptLoaded) {
 
   // Function to check if a video is a waste for the user
   async function isWastingVideo() {
+    // Shorts are always wasting
     if (isShortsVideo()) return true;
+    const { videoId, title, channel, description, lengthInSeconds } = await getVideoDetails();
 
-    const { title, channel, description, lengthInSeconds } = await getVideoDetails();
-    console.log("isWastingVideo title : ", title);
-    console.log("isWastingVideo channel : ", channel);
-    console.log("isWastingVideo description : ", description);
-    console.log("isWastingVideo lengthInSeconds : ", lengthInSeconds);
+    // Movies can't be wasting video 
+    if (channel === "YouTube Movies") {
+      console.log("This is a movie.");
+      isMovie = true;
+      return false;
+    }
+
+    isMovie = false;
+
+    // If user rating exists in current video
+    const ratings = await getStoredData(["videoRatings"]) || {};
+    const videoRating = ratings.videoRatings[videoId];
+    if (videoRating) {
+      if (videoRating.rating === 1 || videoRating.rating === 2) {
+        console.log("Low rating");
+        return true;
+      } else if (videoRating.rating === 4 || videoRating.rating === 5) {
+        console.log("High rating");
+        return false;
+      }
+    }
+
+    // console.log("isWastingVideo title : ", title);
+    // console.log("isWastingVideo channel : ", channel);
+    // console.log("isWastingVideo description : ", description);
+    // console.log("isWastingVideo lengthInSeconds : ", lengthInSeconds);
 
     const { preferenceReport } = await getStoredData(["preferenceReport"]);
 
     const prompt = `The user's current preference report is as follows:
-  ${JSON.stringify(preferenceReport, null, 2)}
+      ${JSON.stringify(preferenceReport, null, 2)}
 
-  Video details:
-  - Title: "${title}"
-  - Channel: "${channel}"
-  - Description: "${description}"
-  - Length in seconds: ${lengthInSeconds}
+      Video details:
+      - Title: "${title}"
+      - Channel: "${channel}"
+      - Description: "${description}"
+      - Length in seconds: ${lengthInSeconds}
 
-  Determine if this video is a "wasted video" for this user based on the preference report and the video's details.
-  Rules:
-  - Videos shorter than 3 minutes (180 seconds) are likely to be wasted videos.
-  - Each factor in the preference report has a value between 1 and 5 (A value of 3 represents an average interest in that factor.)
-  - A video is more likely to be a wasted video if it aligns with topics or categories where the user's preference report has low values.
-  - Respond with ONLY the result as a JSON object:
-  { "is_waste": 1 } if the video is a wasted video, or { "is_waste": 0 } if it is not.`;
+      Determine if this video is a "wasted video" for this user based on the preference report and the video's details.
+      Rules:
+      - Videos shorter than 3 minutes (180 seconds) are likely to be wasted videos.
+      - Each factor in the preference report has a value between 1 and 5 (A value of 3 represents an average interest in that factor.)
+      - A video is more likely to be a wasted video if it aligns with topics or categories where the user's preference report has low values.
+      - Respond with ONLY the result as a JSON object:
+      { "is_waste": 1 } if the video is a wasted video, or { "is_waste": 0 } if it is not.`;
 
     const messages = [
       { role: "system", content: "You are an assistant trained to determine if videos align with user preferences or are a waste of time." },
@@ -806,7 +836,6 @@ if (!window.isContentScriptLoaded) {
       },
       body: JSON.stringify({ messages }),
     });
-
 
     const data = await response.json();
     try {
@@ -870,6 +899,7 @@ if (!window.isContentScriptLoaded) {
 
       if (initialrun || (currentUrl !== window.location.href && (isShorts || currentVideoId !== getVideoId()))) {
         initialrun = false;
+        isMovie = false; // Updated in isWasteVideo function
         currentUrl = window.location.href;
         currentVideoId = getVideoId();
 
@@ -921,7 +951,7 @@ if (!window.isContentScriptLoaded) {
               chrome.storage.local.get([`alerted_${threshold.message}`], (alertData) => {
                 if (!alertData[`alerted_${threshold.message}`]) {
                   // Display the message with the activity suggestion
-                  showAlertMessage(threshold.message, threshold.suggestion);
+                  if (!isMovie) showAlertMessage(threshold.message, threshold.suggestion);
 
                   // Mark this threshold as alerted to avoid showing it again
                   chrome.storage.local.set({ [`alerted_${threshold.message}`]: true });
@@ -929,7 +959,6 @@ if (!window.isContentScriptLoaded) {
               });
             }
           }
-
 
           if (isWaste) {
             const wastedTime = (result.wastedTime || 0) + increment;
