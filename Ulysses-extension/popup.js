@@ -2,7 +2,9 @@
 let isStatsVisible = false;
 let areRatedVideosVisible = false;
 let isPreferenceReportVisible = false;
+let isManualVisible = false;
 let shareMessageTimeout = null;
+
 
 function printFormatTime(time) {
   if (time > 3600) {
@@ -198,6 +200,41 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
 
 
 
+// // Function to toggle preference report visibility
+// document.getElementById("showManual").addEventListener("click", () => {
+//   const manualDiv = document.getElementById("manual");
+//   isManualVisible = !isManualVisible;
+
+//   manualDiv.style.display = manualDiv ? "block" : "none";
+
+//   const buttonText = isManualVisible ? "Hide Manual" : "Show Manual";
+//   document.getElementById("showManual").textContent = buttonText;
+
+//   if (isManualVisible) {
+//     manualDiv.style.fontFamily = "'Arial', sans-serif";
+//     manualDiv.style.fontSize = "14px";
+//     manualDiv.style.lineHeight = "1.6";
+//     manualDiv.style.color = "#333";
+//     manualDiv.style.zIndex = "1000";
+//     manualDiv.style.textAlign = "left";
+
+//     // Manual content
+//     manualDiv.innerHTML = `
+//       <strong style="font-size: 16px; display: block; text-align: center; margin-bottom: 8px;"> YouTube Time Saver Manual</strong>
+//       <ol style="padding-left: 16px; margin: 0;">
+//           <li>Our tool learns your preferences and nudges you toward content you genuinely value.</li>
+//           <li>We personalize the wasted video classifier based on your video ratings!</li>
+//           <li>You can view your watch statistics, rated videos, and preference report in the popup.</li>
+//           <li>To pin the extension popup for easy access: Click the extension button in the top-right corner of Chrome, then click the pin icon next to "YouTube Time Saver".</li>
+//       </ol>
+//   `;
+//   } else {
+//     manualDiv.innerHTML = ''; // Clear the content when hidden
+//   }
+// });
+
+
+
 // Share button logic
 document.getElementById("shareButton").addEventListener("click", () => {
   const shareUrl = "https://chromewebstore.google.com/detail/youtube-time-saver/hgnjolfjangenehndnflggfpddcgjdfo"; // Replace with the actual extension URL
@@ -224,3 +261,5 @@ document.getElementById("stats").style.display = "none"; // Hide stats by defaul
 document.getElementById("ratedVideos").style.display = "none"; // Hide rated videos by default
 document.getElementById("preferenceReport").style.display = "none"; // Hide preference report by default
 updateStats();
+
+

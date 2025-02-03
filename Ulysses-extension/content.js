@@ -6,13 +6,13 @@ if (!window.isContentScriptLoaded) {
   const HIGHLIGHT_COLOR = "rgba(255, 0, 0, 0.3)";
   let currentUrl = null;
   let currentVideoId = null;
+  let isShorts = null;
   let isWaste = null;
   let isMovie = null;
   let initialrun = null;
 
   let timerDiv = null;
   let ratingDiv = null;
-  let manualDiv = null;
   let buttonDiv = null;
   let ratingMessageTimeout = null;
   let shareMessageTimeout = null;
@@ -305,10 +305,10 @@ if (!window.isContentScriptLoaded) {
 
     // Rating explanation
     const explainText = document.createElement("p");
-    explainText.style.marginTop = "5px"; 
-    let spaces="";
-    for(let i=1; i<=53; i++) spaces=spaces+"&nbsp;";
-    explainText.innerHTML = "(wasteful)"+spaces+"(beneficial)";
+    explainText.style.marginTop = "5px";
+    let spaces = "";
+    for (let i = 1; i <= 53; i++) spaces = spaces + "&nbsp;";
+    explainText.innerHTML = "(wasteful)" + spaces + "(beneficial)";
     explainText.style.fontSize = "12px";
     explainText.style.color = "#666";
     ratingDiv.appendChild(explainText);
@@ -372,34 +372,58 @@ if (!window.isContentScriptLoaded) {
   }
 
 
-  // Save the rating to chrome.storage
-  function saveRating(videoDetails, rating) {
-    chrome.storage.local.get(["videoRatings"], (result) => {
-      const ratings = result.videoRatings || {};
-      ratings[videoDetails.videoId] = {
-        title: videoDetails.title,
-        channel: videoDetails.channel,
-        rating,
-      };
-      chrome.storage.local.set({ videoRatings: ratings }, () => {
-        console.log("Rating saved:", ratings[videoDetails.videoId]);
-      });
-    });
-    if (rating === 1 || rating === 2) {
-      isWaste = true;
+  // // Save the rating to chrome.storage
+  // function saveRating(videoDetails, rating) {
+  //   chrome.storage.local.get(["videoRatings"], (result) => {
+  //     const ratings = result.videoRatings || {};
+  //     ratings[videoDetails.videoId] = {
+  //       title: videoDetails.title,
+  //       channel: videoDetails.channel,
+  //       rating,
+  //     };
+  //     chrome.storage.local.set({ videoRatings: ratings }, () => {
+  //       console.log("Rating saved:", ratings[videoDetails.videoId]);
+  //     });
+  //   });
+
+  //   isWastingVideo().then((result) => {
+  //     isWaste = result;
+  //     console.log("Updated isWaste:", isWaste); // This dosen't invoke ChatGPT API
+  //   });
+  // }
+// Save the rating to chrome.storage
+async function saveRating(videoDetails, rating) {
+  try {
+    const result = await getStorage("videoRatings");
+    const ratings = result.videoRatings || {};
+    ratings[videoDetails.videoId] = {
+      title: videoDetails.title,
+      channel: videoDetails.channel,
+      rating,
+    };
+
+    await setStorage({ videoRatings: ratings });  // Wait for the set operation to complete
+    console.log("Rating saved:", ratings[videoDetails.videoId]);
+
+    // Now run isWastingVideo after the storage update
+    if(rating !== 3){
+      // Caution!! Optimization to reduce ChatGPT API call (Need to be addressed after Wasting Decision tree re-designed.)
+      isWaste = await isWastingVideo();  // This is awaited now
     }
-    else if (rating === 4 || rating === 5) {
-      isWaste = false;
-    }
+    console.log("Updated isWaste:", isWaste);
+
+  } catch (error) {
+    console.error("Error saving rating:", error);
   }
+}
 
 
   // Show a message after click share button
   function showShareMessage(message) {
     const existingMessage = document.getElementById("shareMessageDiv");
     if (existingMessage) {
-        existingMessage.remove();
-        clearTimeout(shareMessageTimeout);
+      existingMessage.remove();
+      clearTimeout(shareMessageTimeout);
     }
 
 
@@ -433,127 +457,53 @@ if (!window.isContentScriptLoaded) {
     }
   });
 
-  // Function to create the manual button
-  function createManualButton() {
+  // Function to create the popup button
+  function createPopupButton() {
     // If the button already exists, do nothing
     if (buttonDiv) return;
 
+
     // Create the button container
     buttonDiv = document.createElement("div");
-    buttonDiv.id = "manual-button";
+    buttonDiv.id = "popup-button";
     buttonDiv.style.position = "fixed";
-    buttonDiv.style.bottom = "20px";
-    buttonDiv.style.right = "20px";
-    buttonDiv.style.width = "50px";
-    buttonDiv.style.height = "50px";
-    buttonDiv.style.backgroundColor = "#007AFF"; // Blue color for visibility
-    buttonDiv.style.color = "white";
+    buttonDiv.style.top = "140px";
+    buttonDiv.style.right = "120px";
+    buttonDiv.style.width = "80px";
+    buttonDiv.style.height = "80px";
     buttonDiv.style.borderRadius = "50%";
     buttonDiv.style.display = "flex";
     buttonDiv.style.alignItems = "center";
     buttonDiv.style.justifyContent = "center";
     buttonDiv.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.2)";
     buttonDiv.style.cursor = "pointer";
-    buttonDiv.style.fontSize = "12px";
-    buttonDiv.style.fontWeight = "bold";
     buttonDiv.style.zIndex = "1000";
     buttonDiv.style.userSelect = "none";
-    buttonDiv.innerText = "i"; // Info icon
+    buttonDiv.style.overflow = "hidden";
+
+    // Set background image
+    buttonDiv.style.backgroundImage = `url(${chrome.runtime.getURL('Transparent_ulysses.png')})`;
+    buttonDiv.style.backgroundSize = "contain";
+    buttonDiv.style.backgroundRepeat = "no-repeat";
+    buttonDiv.style.backgroundPosition = "center";
 
     // Append the button to the document body
     document.body.appendChild(buttonDiv);
 
-    // Toggle manual UI on button click
+    // Toggle popup UI on button click
     buttonDiv.addEventListener("click", () => {
-      if (manualDiv) {
-        removeManualUI();
-      } else {
-        createManualUI();
-      }
+      chrome.runtime.sendMessage({ action: "openPopup" });
     });
   }
 
-  // Remove the timer from the page
-  function removeManualButton() {
-    if (manualDiv) {
-      removeManualUI();
-    }
+  // Remove the rating UI
+  function removePopupButton() {
     if (buttonDiv) {
-      buttonDiv.remove(); // Remove the timer from the DOM
-      buttonDiv = null;   // Reset the timerDiv reference
+      buttonDiv.remove();
+      buttonDiv = null;
     }
   }
 
-  // Function to create and display the manual UI
-  function createManualUI() {
-    if (manualDiv) return;
-
-    // Create the manual container
-    manualDiv = document.createElement("div");
-    manualDiv.id = "ulysses-manual";
-    manualDiv.style.position = "fixed";
-    manualDiv.style.bottom = "70px";
-    manualDiv.style.right = "20px";
-    manualDiv.style.width = "320px";
-    manualDiv.style.padding = "15px";
-    manualDiv.style.backgroundColor = "white";
-    manualDiv.style.borderRadius = "12px";
-    manualDiv.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.2)";
-    manualDiv.style.fontFamily = "'Arial', sans-serif";
-    manualDiv.style.fontSize = "14px";
-    manualDiv.style.lineHeight = "1.6";
-    manualDiv.style.color = "#333";
-    manualDiv.style.zIndex = "1000";
-    manualDiv.style.transition = "opacity 0.3s ease-in-out";
-    manualDiv.style.opacity = "0";
-    manualDiv.style.textAlign = "left";
-
-    // Manual content
-    manualDiv.innerHTML = `
-      <strong style="font-size: 16px; display: block; text-align: center; margin-bottom: 8px;"> YouTube Time Saver Manual</strong>
-      <ol style="padding-left: 16px; margin: 0;">
-          <li>We personalize the wasted video classifier based on your video ratings!</li>
-          <li>You can view your watch statistics, rated videos, and preference report in the popup.</li>
-          <li>To pin the extension popup for easy access: Click the extension button in the top-right corner of Chrome, then click the pin icon next to "YouTube Time Saver".</li>
-      </ol>
-      <div style="text-align: center; margin-top: 10px;">
-          <button id="closeManualBtn" style="
-              padding: 6px 12px;
-              font-size: 12px;
-              color: white;
-              background-color: #ff5c5c;
-              border: none;
-              border-radius: 6px;
-              cursor: pointer;
-              transition: background 0.2s;
-          ">Close</button>
-      </div>
-  `;
-
-    // Append the manual to the document body
-    document.body.appendChild(manualDiv);
-
-    // Smooth fade-in effect
-    setTimeout(() => {
-      manualDiv.style.opacity = "1";
-    }, 50);
-
-    // Close button functionality
-    document.getElementById("closeManualBtn").addEventListener("click", removeManualUI);
-  }
-
-  // Function to remove the manual UI
-  function removeManualUI() {
-    if (manualDiv) {
-      manualDiv.style.opacity = "0";
-      setTimeout(() => {
-        if (manualDiv) {
-          manualDiv.remove();
-          manualDiv = null;
-        }
-      }, 300);
-    }
-  }
 
 
   // Function to show the warning message UI
@@ -603,7 +553,7 @@ if (!window.isContentScriptLoaded) {
 
 
   // Function to retrieve preferenceReport from Chrome Storage
-  function getStoredData(keys) {
+  function getStorage(keys) {
     return new Promise((resolve, reject) => {
       chrome.storage.local.get(keys, (result) => {
         if (chrome.runtime.lastError) {
@@ -614,6 +564,20 @@ if (!window.isContentScriptLoaded) {
       });
     });
   }
+
+  // Promisified function for chrome.storage.local.set
+  function setStorage(data) {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set(data, () => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
 
 
   function truncateDescription(description, maxLength = 300) {
@@ -660,7 +624,7 @@ if (!window.isContentScriptLoaded) {
     currentVideoId = videoId;
 
     try {
-      // const { youtube_apiKey } = await getStoredData(["youtube_apiKey"]);
+      // const { youtube_apiKey } = await getStorage(["youtube_apiKey"]);
       // console.log("youtube_apiKey: " + youtube_apiKey);
       // const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${youtube_apiKey}`;
       // const response = await fetch(apiUrl);
@@ -742,7 +706,7 @@ if (!window.isContentScriptLoaded) {
 
     saveRating(videoDetails, userRating);
 
-    const { preferenceReport } = await getStoredData(["preferenceReport"]);
+    const { preferenceReport } = await getStorage(["preferenceReport"]);
     const prompt = `The current user's preference report is as follows:
       ${JSON.stringify(preferenceReport, null, 2)}
 
@@ -843,7 +807,7 @@ if (!window.isContentScriptLoaded) {
 
   // Function to check if a video is a waste for the user
   async function isWastingVideo() {
-    // Shorts are always wasting
+    // Priority: (Shorts: true, Movie: false) > (Rated video (1,2): true, (4,5): false) > (Preference Report)
     if (isShortsVideo()) return true;
     const { videoId, title, channel, description, lengthInSeconds } = await getVideoDetails();
 
@@ -857,7 +821,7 @@ if (!window.isContentScriptLoaded) {
     isMovie = false;
 
     // If user rating exists in current video
-    const ratings = await getStoredData(["videoRatings"]) || {};
+    const ratings = await getStorage(["videoRatings"]) || {};
     const videoRating = ratings.videoRatings[videoId];
     if (videoRating) {
       if (videoRating.rating === 1 || videoRating.rating === 2) {
@@ -869,12 +833,7 @@ if (!window.isContentScriptLoaded) {
       }
     }
 
-    // console.log("isWastingVideo title : ", title);
-    // console.log("isWastingVideo channel : ", channel);
-    // console.log("isWastingVideo description : ", description);
-    // console.log("isWastingVideo lengthInSeconds : ", lengthInSeconds);
-
-    const { preferenceReport } = await getStoredData(["preferenceReport"]);
+    const { preferenceReport } = await getStorage(["preferenceReport"]);
 
     const prompt = `The user's current preference report is as follows:
       ${JSON.stringify(preferenceReport, null, 2)}
@@ -956,46 +915,39 @@ if (!window.isContentScriptLoaded) {
     let previousIsShorts = isShortsVideo();
 
     setInterval(() => {
-      const isShorts = isShortsVideo();
-
-      // Reload if switched between Shorts and Regular videos.
-      if (isShorts !== previousIsShorts) {
-        previousIsShorts = isShorts;
-        console.log("Switching between Shorts and Regular. Reloading...");
-        window.location.reload();
-      }
-
-
-      if (initialrun || (currentUrl !== window.location.href && (isShorts || currentVideoId !== getVideoId()))) {
+      if (initialrun || (currentUrl !== window.location.href && (currentVideoId !== getVideoId()))) {
         initialrun = false;
         isMovie = false; // Updated in isWasteVideo function
         currentUrl = window.location.href;
         currentVideoId = getVideoId();
-
+        isShorts = isShortsVideo();
         removeRatingUI();
+        
+
+        // Reload if switched between Shorts and Regular videos.
+        if (isShorts !== previousIsShorts) {
+          previousIsShorts = isShorts;
+          console.log("Switching between Shorts and Regular. Reloading...");
+          window.location.reload();
+        }
+
         if (currentUrl.startsWith("https://www.youtube.com/watch") || currentUrl.startsWith("https://www.youtube.com/shorts")) {
           createRatingUI();
-          removeManualButton(); // remove manual button
-
-          if (isShorts) {
-            isWaste = true;
-          } else {
-            isWastingVideo().then((result) => {
-              isWaste = result;
-              console.log("Updated isWaste:", isWaste); // This will log true or false
-            });
-          }
-        }
-        else {
-          isWaste = false;
-          createManualButton();
+          isWastingVideo().then((result) => {
+            isWaste = result;
+            console.log("Initial isWaste:", isWaste); // This will log true or false
+          });
         }
       }
 
-      // Run function only on the YouTube main page
+
       if (!(currentUrl.startsWith("https://www.youtube.com/watch") || currentUrl.startsWith("https://www.youtube.com/shorts"))) {
+        // Run function only on the YouTube main page
         isWaste = false;
-        createManualButton();
+        createPopupButton();
+      }
+      else{
+        removePopupButton(); // remove popup button
       }
 
       // Only create timer if we're on a wasting video
@@ -1011,6 +963,7 @@ if (!window.isContentScriptLoaded) {
       console.log("isShortsVideo: " + isShorts + " | isWasteVideo: " + isWaste + " | isPlaying: " + (currentVideo && !currentVideo.paused));
 
       if (currentVideo && !currentVideo.paused) {
+        // No Ad detection logic
         const currentTime = Date.now();
         const increment = (currentTime - lastTime) / 1000; // Convert ms to seconds
         lastTime = currentTime;
@@ -1136,10 +1089,7 @@ if (!window.isContentScriptLoaded) {
     // chrome.storage.local.set({ wastedTime: 1650.0 }, () => {
     //   console.log("wastedTime updated.");
     // });
-    const timerPos = { left: "300px", top: "300px" };
-    chrome.storage.local.set({ timerPosition: timerPos }, () => {
-      console.log("timerPos updated.");
-    });
+
     // window.removeStorageKey("ratingPosition");
     // window.removeStorageKey("timerPosition");
     // window.removeStorageKey("chatgpt_apiKey");

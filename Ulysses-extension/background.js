@@ -17,6 +17,13 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "openPopup") {
+    chrome.action.openPopup();
+  }
+});
+
+
 // chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 //   console.log("Tab updated:", tabId, changeInfo, tab);
 //   if (changeInfo.status === "complete" && tab.url && tab.url.includes("youtube.com")) {

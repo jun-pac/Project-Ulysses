@@ -23,6 +23,13 @@
         "type": "module",
         "run_at": "document_end"
       }
+    ],
+    "web_accessible_resources": [
+      {
+        "resources": ["Transparent_ulysses.png"],
+        "matches": ["<all_urls>"]
+      }
     ]
+
   }
   
