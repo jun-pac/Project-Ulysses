@@ -15,6 +15,7 @@ if (!window.isContentScriptLoaded) {
   let manualDiv = null;
   let buttonDiv = null;
   let ratingMessageTimeout = null;
+  let shareMessageTimeout = null;
 
   const timeThresholds = [
     { time: 30 * 60, message: "30 minutes", suggestion: "How about a quick 5-minute stretch? You'd be amazed how much more energized you'll feel!" },
@@ -395,7 +396,15 @@ if (!window.isContentScriptLoaded) {
 
   // Show a message after click share button
   function showShareMessage(message) {
+    const existingMessage = document.getElementById("shareMessageDiv");
+    if (existingMessage) {
+        existingMessage.remove();
+        clearTimeout(shareMessageTimeout);
+    }
+
+
     const shareMessageDiv = document.createElement("div");
+    shareMessageDiv.id = "shareMessageDiv";
     shareMessageDiv.textContent = message;
     shareMessageDiv.style.position = "fixed";
     shareMessageDiv.style.top = "20%";
