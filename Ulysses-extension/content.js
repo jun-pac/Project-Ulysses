@@ -48,6 +48,7 @@ if (!window.isContentScriptLoaded) {
       timerDiv.style.boxShadow = "0px 4px 15px rgba(0, 0, 0, 0.2)";
       timerDiv.style.textAlign = "center";
       timerDiv.style.cursor = "move";
+      timerDiv.style.width = "205px";
 
       // Create the rotating dot animation container
       const spinnerContainer = document.createElement("div");
@@ -139,16 +140,39 @@ if (!window.isContentScriptLoaded) {
 
     document.addEventListener("mousemove", (e) => {
       if (!isDragging) return;
-      element.style.left = `${e.clientX - offsetX}px`;
-      element.style.top = `${e.clientY - offsetY}px`;
+
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const elementWidth = element.offsetWidth;
+      const elementHeight = element.offsetHeight;
+
+      let newX = e.clientX - offsetX;
+      let newY = e.clientY - offsetY;
+
+      if (newX < 0) newX = 0;
+      if (newX + elementWidth > screenWidth) newX = screenWidth - elementWidth;
+      if (newY < 0) newY = 0;
+      if (newY + elementHeight > screenHeight) newY = screenHeight - elementHeight;
+
+      const leftPercent = (newX / screenWidth) * 100;
+      const topPercent = (newY / screenHeight) * 100;
+
+      element.style.left = `${leftPercent}%`;
+      element.style.top = `${topPercent}%`;
     });
 
     document.addEventListener("mouseup", () => {
       if (isDragging) {
         isDragging = false;
-        chrome.storage.local.set({ [storageKey]: { top: element.style.top, left: element.style.left } });
+        chrome.storage.local.set({
+          [storageKey]: {
+            top: element.style.top,
+            left: element.style.left
+          }
+        });
       }
     });
+
 
     chrome.storage.local.get([storageKey], function (result) {
       if (result[storageKey]) {
@@ -204,18 +228,19 @@ if (!window.isContentScriptLoaded) {
     ratingDiv.style.transform = "translateX(-50%)";
     ratingDiv.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
     ratingDiv.style.boxShadow = "0px 4px 12px rgba(0, 0, 0, 0.2)";
-    ratingDiv.style.padding = "15px"; // Reduced padding for a smaller box
+    ratingDiv.style.padding = "20px"; // Reduced padding for a smaller box
     ratingDiv.style.borderRadius = "20px";
     ratingDiv.style.display = "flex";
     ratingDiv.style.flexDirection = "column";
     ratingDiv.style.alignItems = "center";
     ratingDiv.style.zIndex = "9999";
-    ratingDiv.style.width = "auto";
+    ratingDiv.style.width = "320px";
+    ratingDiv.style.height = "150px";
 
     // Add title text
     const text = document.createElement("p");
     text.textContent = "Rate this video:";
-    text.style.fontSize = "24px";
+    text.style.fontSize = "20px";
     text.style.fontWeight = "bold";
     text.style.marginBottom = "15px"; // Reduced margin for compactness
     text.style.color = "#333";
@@ -224,7 +249,8 @@ if (!window.isContentScriptLoaded) {
     const subText = document.createElement("p");
     subText.textContent = "Ratings will be used to personalize waste video detection.";
     subText.style.fontSize = "12px";
-    subText.style.marginBottom = "10px"; // Reduced margin for compactness
+    subText.style.textAlign = "center";
+    subText.style.marginBottom = "5px"; // Reduced margin for compactness
     subText.style.color = "#666";
     ratingDiv.appendChild(subText);
 
@@ -233,7 +259,7 @@ if (!window.isContentScriptLoaded) {
     starContainer.style.display = "flex";
     starContainer.style.alignItems = "flex-start";
     starContainer.style.justifyContent = "center";
-    starContainer.style.gap = "8px"; // Reduced gap between stars
+    starContainer.style.gap = "0px"; // Reduced gap between stars
     starContainer.style.width = "100%";
 
     for (let i = 1; i <= 5; i++) {
@@ -241,7 +267,7 @@ if (!window.isContentScriptLoaded) {
       starWrapper.style.display = "flex";
       starWrapper.style.flexDirection = "column";
       starWrapper.style.alignItems = "center";
-      starWrapper.style.margin = "0 6px"; // Reduced margin for compactness
+      starWrapper.style.margin = "0 8px"; // Reduced margin for compactness
 
       const starButton = document.createElement("button");
       starButton.innerHTML = "&#9733;";
@@ -270,21 +296,21 @@ if (!window.isContentScriptLoaded) {
       label.style.margin = "5px 0 0";
       label.style.color = "#333";
 
-      const subLabel = document.createElement("p");
-      subLabel.style.fontSize = "12px";
-      subLabel.style.margin = "2px 0 0";
-      subLabel.style.color = "#666";
-
-      // Add "wasteful" and "beneficial" under the first and last stars
-      if (i === 1) subLabel.textContent = "(wasteful)";
-      if (i === 5) subLabel.textContent = "(beneficial)";
-
       starWrapper.appendChild(starButton);
       starWrapper.appendChild(label);
-      if (i === 1 || i === 5) starWrapper.appendChild(subLabel);
       starContainer.appendChild(starWrapper);
     }
     ratingDiv.appendChild(starContainer);
+
+    // Rating explanation
+    const explainText = document.createElement("p");
+    explainText.style.marginTop = "5px"; 
+    let spaces="";
+    for(let i=1; i<=53; i++) spaces=spaces+"&nbsp;";
+    explainText.innerHTML = "(wasteful)"+spaces+"(beneficial)";
+    explainText.style.fontSize = "12px";
+    explainText.style.color = "#666";
+    ratingDiv.appendChild(explainText);
 
     // Add to the body
     document.body.appendChild(ratingDiv);
