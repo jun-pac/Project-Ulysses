@@ -5,7 +5,10 @@ Project Ulysses is a Chrome extension designed to help users improve their YouTu
 We often find ourselves drawn to videos that we know are a waste of time, lured by short-term gratification. Our tool learns your preferences and nudges you toward content you genuinely value.
 
 
-## How to Use
+## How to Use 
+Try our extension [here](https://chromewebstore.google.com/detail/youtube-time-saver/hgnjolfjangenehndnflggfpddcgjdfo)!
+
+## How to Use (For developers)
 
 1. Clone this repository:
     ```bash

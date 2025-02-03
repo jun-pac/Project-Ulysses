@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "YouTube Time Saver",
     "version": "1.0",
-    "description": "Analyze and track wasted time on YouTube.",
+    "description": "Learn your preferences and nudge you toward content you genuinely value.",
     "permissions": ["storage", "activeTab", "scripting"],
     "host_permissions": ["https://www.youtube.com/*"],
     "background": {

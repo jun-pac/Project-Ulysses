@@ -419,7 +419,7 @@ if (!window.isContentScriptLoaded) {
     buttonDiv.style.justifyContent = "center";
     buttonDiv.style.boxShadow = "0px 4px 10px rgba(0, 0, 0, 0.2)";
     buttonDiv.style.cursor = "pointer";
-    buttonDiv.style.fontSize = "14px";
+    buttonDiv.style.fontSize = "12px";
     buttonDiv.style.fontWeight = "bold";
     buttonDiv.style.zIndex = "1000";
     buttonDiv.style.userSelect = "none";
@@ -477,7 +477,6 @@ if (!window.isContentScriptLoaded) {
     manualDiv.innerHTML = `
       <strong style="font-size: 16px; display: block; text-align: center; margin-bottom: 8px;"> YouTube Time Saver Manual</strong>
       <ol style="padding-left: 16px; margin: 0;">
-          <li>This service helps you avoid wasting time by showing warnings for wasted videos.</li>
           <li>We personalize the wasted video classifier based on your video ratings!</li>
           <li>You can view your watch statistics, rated videos, and preference report in the popup.</li>
           <li>To pin the extension popup for easy access: Click the extension button in the top-right corner of Chrome, then click the pin icon next to "YouTube Time Saver".</li>
@@ -954,10 +953,14 @@ if (!window.isContentScriptLoaded) {
         }
         else {
           isWaste = false;
-
-          // Run function only on the YouTube main page
           createManualButton();
         }
+      }
+
+      // Run function only on the YouTube main page
+      if (!(currentUrl.startsWith("https://www.youtube.com/watch") || currentUrl.startsWith("https://www.youtube.com/shorts"))) {
+        isWaste = false;
+        createManualButton();
       }
 
       // Only create timer if we're on a wasting video
@@ -1007,7 +1010,7 @@ if (!window.isContentScriptLoaded) {
       } else {
         lastTime = Date.now(); // Update lastTime to prevent over-counting
       }
-    }, 1000); // Update every 1000ms
+    }, 250); // Update every 250ms
   }
 
 
@@ -1098,6 +1101,10 @@ if (!window.isContentScriptLoaded) {
     // chrome.storage.local.set({ wastedTime: 1650.0 }, () => {
     //   console.log("wastedTime updated.");
     // });
+    const timerPos = { left: "300px", top: "300px" };
+    chrome.storage.local.set({ timerPosition: timerPos }, () => {
+      console.log("timerPos updated.");
+    });
     // window.removeStorageKey("ratingPosition");
     // window.removeStorageKey("timerPosition");
     // window.removeStorageKey("chatgpt_apiKey");
