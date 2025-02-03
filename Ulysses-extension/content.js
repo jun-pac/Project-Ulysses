@@ -3,7 +3,9 @@ if (!window.isContentScriptLoaded) {
   // Begin from here if reloaded
   window.isContentScriptLoaded = true;
 
-  const HIGHLIGHT_COLOR = "rgba(255, 0, 0, 0.3)";
+  const smallTimeInterval = 250;
+  const largeTimeInterval = 1000;
+
   let currentUrl = null;
   let currentVideoId = null;
   let isShorts = null;
@@ -362,60 +364,30 @@ if (!window.isContentScriptLoaded) {
     }
   }
 
+  async function saveRating(videoDetails, rating) {
+    try {
+      const result = await getStorage("videoRatings");
+      const ratings = result.videoRatings || {};
+      ratings[videoDetails.videoId] = {
+        title: videoDetails.title,
+        channel: videoDetails.channel,
+        rating,
+      };
 
-  // Remove the timer from the page
-  function removeRatingUI() {
-    if (ratingDiv) {
-      ratingDiv.remove(); // Remove the timer from the DOM
-      ratingDiv = null;   // Reset the ratingDiv reference
+      await setStorage({ videoRatings: ratings });  // Wait for the set operation to complete
+      console.log("Rating saved:", ratings[videoDetails.videoId]);
+
+      // Now run isWastingVideo after the storage update
+      if (rating !== 3) {
+        // Caution!! Optimization to reduce ChatGPT API call (Need to be addressed after Wasting Decision tree re-designed.)
+        isWaste = await isWastingVideo();  // This is awaited now
+      }
+      console.log("Updated isWaste:", isWaste);
+
+    } catch (error) {
+      console.error("Error saving rating:", error);
     }
   }
-
-
-  // // Save the rating to chrome.storage
-  // function saveRating(videoDetails, rating) {
-  //   chrome.storage.local.get(["videoRatings"], (result) => {
-  //     const ratings = result.videoRatings || {};
-  //     ratings[videoDetails.videoId] = {
-  //       title: videoDetails.title,
-  //       channel: videoDetails.channel,
-  //       rating,
-  //     };
-  //     chrome.storage.local.set({ videoRatings: ratings }, () => {
-  //       console.log("Rating saved:", ratings[videoDetails.videoId]);
-  //     });
-  //   });
-
-  //   isWastingVideo().then((result) => {
-  //     isWaste = result;
-  //     console.log("Updated isWaste:", isWaste); // This dosen't invoke ChatGPT API
-  //   });
-  // }
-// Save the rating to chrome.storage
-async function saveRating(videoDetails, rating) {
-  try {
-    const result = await getStorage("videoRatings");
-    const ratings = result.videoRatings || {};
-    ratings[videoDetails.videoId] = {
-      title: videoDetails.title,
-      channel: videoDetails.channel,
-      rating,
-    };
-
-    await setStorage({ videoRatings: ratings });  // Wait for the set operation to complete
-    console.log("Rating saved:", ratings[videoDetails.videoId]);
-
-    // Now run isWastingVideo after the storage update
-    if(rating !== 3){
-      // Caution!! Optimization to reduce ChatGPT API call (Need to be addressed after Wasting Decision tree re-designed.)
-      isWaste = await isWastingVideo();  // This is awaited now
-    }
-    console.log("Updated isWaste:", isWaste);
-
-  } catch (error) {
-    console.error("Error saving rating:", error);
-  }
-}
 
 
   // Show a message after click share button
@@ -898,21 +870,13 @@ async function saveRating(videoDetails, rating) {
     return window.location.href.includes("/shorts/");
   }
 
-  function highlightShortsVideos() {
-    const videos = document.querySelectorAll("ytd-rich-item-renderer, ytd-video-renderer");
-    videos.forEach((video) => {
-      const linkElement = video.querySelector("a[href]");
-      if (linkElement && linkElement.href.includes("/shorts/")) {
-        video.style.backgroundColor = HIGHLIGHT_COLOR;
-      }
-    });
-  }
-
 
   function trackWastedTime() {
-    let lastTime = Date.now();
     let currentVideo = null;
     let previousIsShorts = isShortsVideo();
+    let totalTime = 0;
+    let smallIntervalCount = 0;
+    const smallToLarge = largeTimeInterval / smallTimeInterval;
 
     setInterval(() => {
       if (initialrun || (currentUrl !== window.location.href && (currentVideoId !== getVideoId()))) {
@@ -922,7 +886,7 @@ async function saveRating(videoDetails, rating) {
         currentVideoId = getVideoId();
         isShorts = isShortsVideo();
         removeRatingUI();
-        
+
 
         // Reload if switched between Shorts and Regular videos.
         if (isShorts !== previousIsShorts) {
@@ -946,7 +910,7 @@ async function saveRating(videoDetails, rating) {
         isWaste = false;
         createPopupButton();
       }
-      else{
+      else {
         removePopupButton(); // remove popup button
       }
 
@@ -964,12 +928,21 @@ async function saveRating(videoDetails, rating) {
 
       if (currentVideo && !currentVideo.paused) {
         // No Ad detection logic
-        const currentTime = Date.now();
-        const increment = (currentTime - lastTime) / 1000; // Convert ms to seconds
-        lastTime = currentTime;
+        const increment = smallTimeInterval / 1000; // Convert ms to seconds
         chrome.storage.local.get(["wastedTime", "regularTime"], (result) => {
-          const totalTime = (result.wastedTime || 0) + (result.regularTime || 0);
+          totalTime = (result.wastedTime || 0) + (result.regularTime || 0);
+          if (isWaste) {
+            const wastedTime = (result.wastedTime || 0) + increment;
+            updateWastedTimeDisplay(wastedTime);
+            chrome.storage.local.set({ wastedTime });
+          } else {
+            const regularTime = (result.regularTime || 0) + increment;
+            chrome.storage.local.set({ regularTime });
+          }
+        });
 
+
+        if (smallIntervalCount === smallToLarge - 1) {
           // Check if total time exceeds any threshold and message hasn't been shown yet
           for (const threshold of timeThresholds) {
             if (totalTime >= threshold.time) {
@@ -986,19 +959,18 @@ async function saveRating(videoDetails, rating) {
             }
           }
 
-          if (isWaste) {
-            const wastedTime = (result.wastedTime || 0) + increment;
-            updateWastedTimeDisplay(wastedTime);
-            chrome.storage.local.set({ wastedTime });
-          } else {
-            const regularTime = (result.regularTime || 0) + increment;
-            chrome.storage.local.set({ regularTime });
+          // Check if video has played for more than 15 seconds
+          if (currentVideo.currentTime > 15) {
+            
+            removeRatingUI();  // Remove UI with fade out effect
           }
-        });
-      } else {
-        lastTime = Date.now(); // Update lastTime to prevent over-counting
+
+          // Reset interval count
+          smallIntervalCount = 0;
+        }
+        else smallIntervalCount++;
       }
-    }, 250); // Update every 250ms
+    }, smallTimeInterval);
   }
 
 
