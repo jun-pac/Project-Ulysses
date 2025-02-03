@@ -122,6 +122,9 @@ if (!window.isContentScriptLoaded) {
         }
       `;
       document.head.appendChild(styleSheet);
+      chrome.storage.local.get(["wastedTime"], (result) => {
+        updateWastedTimeDisplay(result.wastedTime);
+      });
     }
   }
 
@@ -172,7 +175,7 @@ if (!window.isContentScriptLoaded) {
         const seconds = String(Math.floor(wastedTime % 60)).padStart(2, "0");
         timeDisplay.textContent = `${minutes}:${seconds}`;
       } else {
-        timeDisplay.textContent = String((wastedTime).toFixed(2));
+        timeDisplay.textContent = String(Math.floor(wastedTime));
       }
     }
   }
@@ -362,6 +365,38 @@ if (!window.isContentScriptLoaded) {
       isWaste = false;
     }
   }
+
+
+  // Show a message after click share button
+  function showShareMessage(message) {
+    const shareMessageDiv = document.createElement("div");
+    shareMessageDiv.textContent = message;
+    shareMessageDiv.style.position = "fixed";
+    shareMessageDiv.style.top = "20%";
+    shareMessageDiv.style.left = "50%";
+    shareMessageDiv.style.transform = "translate(-50%, -50%)";
+    shareMessageDiv.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+    shareMessageDiv.style.color = "white";
+    shareMessageDiv.style.padding = "20px 30px";
+    shareMessageDiv.style.borderRadius = "10px";
+    shareMessageDiv.style.fontSize = "16px";
+    shareMessageDiv.style.zIndex = "10000";
+    shareMessageDiv.style.textAlign = "center";
+
+    document.body.appendChild(shareMessageDiv);
+
+    // Delete message after 2 seconds
+    if (shareMessageTimeout) clearTimeout(shareMessageTimeout);
+    shareMessageTimeout = setTimeout(() => {
+      shareMessageDiv.remove();
+    }, 2000);
+  }
+
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "showShareMessage") {
+      showShareMessage(request.message);
+    }
+  });
 
   // Function to create the manual button
   function createManualButton() {
@@ -1047,7 +1082,7 @@ if (!window.isContentScriptLoaded) {
 
   function initializeObserver() {
     trackWastedTime();
-    setInterval(resetDailyTimeTracking, 60 * 1000);
+    setInterval(resetDailyTimeTracking, 20 * 1000);
 
     console.log("window.checkStorage():");
     window.checkStorage();

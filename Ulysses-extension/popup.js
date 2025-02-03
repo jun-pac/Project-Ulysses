@@ -2,6 +2,7 @@
 let isStatsVisible = false;
 let areRatedVideosVisible = false;
 let isPreferenceReportVisible = false;
+let shareMessageTimeout = null;
 
 function printFormatTime(time) {
   if (time > 3600) {
@@ -118,9 +119,9 @@ document.getElementById("showRatedVideos").addEventListener("click", () => {
     // Fetch and display rated videos
     chrome.storage.local.get("videoRatings", (result) => {
       const videoRatings = result.videoRatings || {};
-    
+
       const ratedVideosContent = Object.values(videoRatings)
-        .sort((a, b) => b.rating - a.rating) 
+        .sort((a, b) => b.rating - a.rating)
         .map(video => {
           const ratingClass = getRatingClass(video.rating);
           return `
@@ -132,9 +133,9 @@ document.getElementById("showRatedVideos").addEventListener("click", () => {
           `;
         })
         .join('');
-    
+
       document.getElementById("ratedVideosBody").innerHTML = ratedVideosContent;
-    });    
+    });
   } else {
     document.getElementById("ratedVideosBody").innerHTML = ''; // Clear the content when hidden
   }
@@ -169,7 +170,7 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
   if (isPreferenceReportVisible) {
     // Fetch and display preference report as a table
     chrome.storage.local.get("preferenceReport", (result) => {
-      const preferenceReport = result.preferenceReport || {};    
+      const preferenceReport = result.preferenceReport || {};
       const preferenceReportTable = `
         <table>
           <thead>
@@ -177,38 +178,35 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
           </thead>
           <tbody>
             ${Object.entries(preferenceReport)
-              .sort((a, b) => b[1] - a[1]) 
-              .map(([key, value]) => `
+          .sort((a, b) => b[1] - a[1])
+          .map(([key, value]) => `
                 <tr>
                   <td>${key}</td>
                   <td>${value}</td>
                 </tr>
               `)
-              .join('')}
+          .join('')}
           </tbody>
         </table>
       `;
       preferenceReportDiv.innerHTML = preferenceReportTable;
-    });    
+    });
   } else {
     preferenceReportDiv.innerHTML = ''; // Clear the content when hidden
   }
 });
 
-// // Reset button logic
-// document.getElementById("resetButton").addEventListener("click", () => {
-//   chrome.storage.local.set({ wastedTime: 0, regularTime: 0 }, () => {
-//     console.log("Time stats have been reset.");
-//     updateStats(); // Immediately update the display
-//   });
-// });
+
 
 // Share button logic
 document.getElementById("shareButton").addEventListener("click", () => {
   const shareUrl = "https://chromewebstore.google.com/detail/youtube-time-saver/hgnjolfjangenehndnflggfpddcgjdfo"; // Replace with the actual extension URL
   // const shareUrl = "https://github.com/jun-pac/Project-Ulysses";
   navigator.clipboard.writeText(shareUrl).then(() => {
-    alert("The link to download the extension has been copied to your clipboard. Share it with your friends!");
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs.length === 0) return;
+      chrome.tabs.sendMessage(tabs[0].id, { action: "showShareMessage", message: "The link has been copied to your clipboard. Share it with your friends!" });
+    });
   }).catch(err => {
     console.error("Failed to copy the link: ", err);
   });
