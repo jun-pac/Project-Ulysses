@@ -1,8 +1,8 @@
-# Project Ulysses: Chrome Extension for Improving YouTube Habits
+# Project Ulysses: Reclaim your control over YouTube.
 
-Project Ulysses is a Chrome extension designed to help users improve their YouTube viewing habits. It tracks time spent watching "wasted videos" versus regular videos, and provides users with insights and warnings to promote better time management.    
+Project Ulysses is a Chrome extension designed to help users improve their YouTube viewing habits.    
 
-Additionally, the extension personalizes recommendations using user feedback and preferences, helping users make more informed decisions about their video-watching habits.
+We often find ourselves drawn to videos that we know are a waste of time, lured by short-term gratification. Our tool learns your preferences and nudges you toward content you genuinely value.
 
 
 ## How to Use
