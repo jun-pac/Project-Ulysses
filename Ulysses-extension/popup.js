@@ -135,13 +135,21 @@ function createCalendar(timeRecords) {
       cell.style.tableLayout = "fixed";
       cell.title = `Date: ${record.date}\nWasted Time: ${record.wastedTime.toFixed(2)} seconds\nRegular Time: ${record.regularTime.toFixed(2)} seconds`;
     }
-    else {
+    else if(date >= today){
       cell.style.backgroundColor = "lightgray";
       cell.style.border = "3px solid #f7fafc";
       cell.style.width = "3px";
       cell.style.height = "3px";
       cell.style.tableLayout = "fixed";
       cell.title = `Date: ${record.date}\nFuture date`;
+    }
+    else{
+      cell.style.backgroundColor = "lightgray";
+      cell.style.border = "3px solid #f7fafc";
+      cell.style.width = "3px";
+      cell.style.height = "3px";
+      cell.style.tableLayout = "fixed";
+      cell.title = `Date: ${record.date}\nNo data`;
     }
     rows[dayIndex].appendChild(cell);
     dayCounter++;
@@ -182,14 +190,12 @@ function getCellColor(wastedTime) {
     const red = 128 * wastedTime / 600 + 65 * (600 - wastedTime) / 600;
     const green = 128 * wastedTime / 600 + 209 * (600 - wastedTime) / 600;
     const blue = 128 * wastedTime / 600 + 132 * (600 - wastedTime) / 600;
-    console.log("GREEN? ", red, green, blue);
     return `rgb(${red}, ${green}, ${blue})`; // Green shades
   } else {
     // (128, 128, 128) (600) -> (255, 66, 66) (INF)
     const red = 255 - 127 * 600 / wastedTime;
     const green = 66 + 62 * 600 / wastedTime;
     const blue = 66 + 62 * 600 / wastedTime;
-    console.log("RED? ", red, green, blue);
     return `rgb(${red}, ${green}, ${blue})`; // Red shades
   }
 }

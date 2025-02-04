@@ -1090,9 +1090,8 @@ if (!window.isContentScriptLoaded) {
     //   chrome.storage.local.set({ [`alerted_${threshold.message}`]: false });
     // }
 
-    // let record = { date: "2025-02-04", regularTime: 0, wastedTime: 780};
-    // injectRecord(record);
-
+    let record = { date: "2025-02-04", regularTime: 0, wastedTime: 400};
+    injectRecord(record);
   }
 
   initializeObserver();
