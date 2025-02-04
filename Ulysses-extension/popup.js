@@ -6,6 +6,195 @@ let isManualVisible = false;
 let shareMessageTimeout = null;
 
 
+// Function to retrieve preferenceReport from Chrome Storage
+function getStorage(keys) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get(keys, (result) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+}
+
+// Calendar
+async function initializeCalendar() {
+  const recordDiv = document.getElementById("record");
+  const result = await getStorage("timeRecords");
+  const timeRecords = result.timeRecords || [];
+  console.log("timeRecords:", timeRecords)
+  const calendar = createCalendar(timeRecords);
+  recordDiv.innerHTML = ""; // Clear any previous content
+  recordDiv.style.backgroundColor = "#f7fafc";
+  recordDiv.style.borderRadius = "10px";
+  recordDiv.appendChild(calendar); // Append new calendar
+}
+
+// Function to create a calendar table
+function createCalendar(timeRecords) {
+  const minWeeks = 11;
+  const today = new Date();
+  const startDate = new Date(2024, 1, 1); // Earliest start date (Feb 1, 2024)
+
+  // Filter and sort records by date
+  const filteredRecords = timeRecords
+    .filter(record => new Date(record.date) >= startDate)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+
+  // Determine the first recorded date
+  const firstRecordDate = filteredRecords.length > 0 ? new Date(filteredRecords[0].date) : today;
+  console.log("firstRecordDate", firstRecordDate.getDate());
+  // Map to store date-based records
+  const dateMap = new Map();
+
+  let currentDate = new Date(firstRecordDate);
+  let streakCounter = 0;
+  let maxStreak = 0;
+  let todayStreak = 0;
+  let dayCounter = 0;
+  while (currentDate.getDay() != 0) currentDate.setDate(currentDate.getDate() - 1);
+  while ((currentDate <= today || (dayCounter % 7 !== 0)) || dayCounter < minWeeks * 7) {
+    const dateString = currentDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+    const existingRecord = filteredRecords.find(record => record.date === dateString);
+    const newRecord = existingRecord || { date: dateString, wastedTime: 0, regularTime: 0 };
+    dateMap.set(dateString, newRecord);
+    if (firstRecordDate <= currentDate && currentDate < today) {
+      if (newRecord.wastedTime >= 600) {
+        streakCounter = 0;
+      }
+      else {
+        streakCounter++;
+        maxStreak = Math.max(maxStreak, streakCounter);
+      }
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+    dayCounter++;
+  }
+  todayStreak = streakCounter;
+
+  // Ensure at least 20 weeks (columns)
+  const totalDays = Array.from(dateMap.keys()).length;
+  const totalWeeks = Math.max(Math.ceil(totalDays / 7), minWeeks);
+
+  // Create table structure
+  const table = document.createElement("table");
+  table.style.borderCollapse = "collapse";
+  table.style.border = "3px solid #f7fafc";
+  table.style.overflowX = "auto";
+  table.style.display = "block";
+  table.style.marginBottom = "5px";
+  const tbody = document.createElement("tbody");
+  table.appendChild(tbody);
+
+
+  // Add title
+  const titleRow = document.createElement("tr");
+  const titleCell = document.createElement("td");
+  titleCell.colSpan = totalWeeks + 1;
+  titleCell.textContent = "Activities";
+  titleCell.style.fontWeight = "bold";
+  titleCell.style.textAlign = "left";
+  titleCell.style.fontSize = "15px";
+  titleCell.style.padding = "10px";
+  titleCell.style.backgroundColor = "#f7fafc";
+  titleRow.appendChild(titleCell);
+  tbody.appendChild(titleRow);
+
+  dayCounter = 0;
+
+  // Initialize rows for each day of the week
+  const rows = ["", "Mon ", "", "Wed ", "", "Fri ", ""].map(label => {
+    const row = document.createElement("tr");
+    const labelCell = document.createElement("td");
+    labelCell.textContent = label;
+    labelCell.style.fontWeight = "bold";
+    labelCell.style.fontSize = "10px";
+    labelCell.style.padding = "0px";
+    labelCell.style.textAlign = "right";
+    labelCell.style.backgroundColor = "#f7fafc";
+    labelCell.style.whiteSpace = "nowrap";
+    row.appendChild(labelCell);
+    tbody.appendChild(row);
+    return row;
+  });
+
+  for (const [dateString, record] of dateMap) {
+    const date = new Date(dateString);
+    const dayIndex = date.getDay(); // 0 (Sun) to 6 (Sat)
+
+    // Create and append cell
+    const cell = document.createElement("td");
+    if (firstRecordDate <= date && date < today) {
+      cell.style.backgroundColor = getCellColor(record.wastedTime);
+      cell.style.border = "3px solid #f7fafc";
+      cell.style.width = "3px";
+      cell.style.height = "3px";
+      cell.style.tableLayout = "fixed";
+      cell.title = `Date: ${record.date}\nWasted Time: ${record.wastedTime.toFixed(2)} seconds\nRegular Time: ${record.regularTime.toFixed(2)} seconds`;
+    }
+    else {
+      cell.style.backgroundColor = "lightgray";
+      cell.style.border = "3px solid #f7fafc";
+      cell.style.width = "3px";
+      cell.style.height = "3px";
+      cell.style.tableLayout = "fixed";
+      cell.title = `Date: ${record.date}\nFuture date`;
+    }
+    rows[dayIndex].appendChild(cell);
+    dayCounter++;
+  }
+
+  // Right side empty column
+  for (let i = 0; i < 7; i++) {
+    const rightCell = document.createElement("td");
+    rightCell.style.backgroundColor = "#f7fafc";
+    rightCell.style.border = "3px solid #f7fafc";
+    rightCell.style.width = "3px";
+    rightCell.style.height = "3px";
+    rightCell.style.tableLayout = "fixed";
+    rows[i].appendChild(rightCell);
+  };
+
+  // Add streak info
+  const streakRow = document.createElement("tr");
+  const streakCell = document.createElement("td");
+  streakCell.colSpan = totalWeeks + 1;
+  streakCell.innerHTML = `<p><small>Longest Streak: ${maxStreak} days <br> Including Today: ${todayStreak} days</small></p>`;
+  streakCell.style.fontWeight = "bold";
+  streakCell.style.textAlign = "center";
+  streakCell.style.padding = "2px";
+  streakCell.style.backgroundColor = "#f7fafc";
+  streakRow.appendChild(streakCell);
+  tbody.appendChild(streakRow);
+
+  return table;
+}
+
+
+// Determine the color of the cell based on wastedTime
+function getCellColor(wastedTime) {
+  // return "lightgray";
+  if (wastedTime < 600) {
+    // (128, 128, 128) (600) -> (58, 161, 105) (0)
+    const red = 128 * wastedTime / 600 + 65 * (600 - wastedTime) / 600;
+    const green = 128 * wastedTime / 600 + 209 * (600 - wastedTime) / 600;
+    const blue = 128 * wastedTime / 600 + 132 * (600 - wastedTime) / 600;
+    console.log("GREEN? ", red, green, blue);
+    return `rgb(${red}, ${green}, ${blue})`; // Green shades
+  } else {
+    // (128, 128, 128) (600) -> (255, 66, 66) (INF)
+    const red = 255 - 127 * 600 / wastedTime;
+    const green = 66 + 62 * 600 / wastedTime;
+    const blue = 66 + 62 * 600 / wastedTime;
+    console.log("RED? ", red, green, blue);
+    return `rgb(${red}, ${green}, ${blue})`; // Red shades
+  }
+}
+
+
 function printFormatTime(time) {
   if (time > 3600) {
     const hours = Math.floor(time / 3600);
@@ -170,9 +359,10 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
   document.getElementById("showPreferenceReport").textContent = buttonText;
 
   if (isPreferenceReportVisible) {
-    // Fetch and display preference report as a table
-    chrome.storage.local.get("preferenceReport", (result) => {
+    chrome.storage.local.get(["preferenceReport", "lastChangePreferenceReport"], (result) => {
       const preferenceReport = result.preferenceReport || {};
+      const lastChangePreferenceReport = result.lastChangePreferenceReport || {};
+
       const preferenceReportTable = `
         <table>
           <thead>
@@ -181,16 +371,28 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
           <tbody>
             ${Object.entries(preferenceReport)
           .sort((a, b) => b[1] - a[1])
-          .map(([key, value]) => `
-                <tr>
-                  <td>${key}</td>
-                  <td>${value}</td>
-                </tr>
-              `)
+          .map(([key, value]) => {
+            const change = lastChangePreferenceReport[key] || 0;
+            let changeIndicator = `<span style="color:gray;">0.00</span>`;
+
+            if (change > 0) {
+              changeIndicator = `<span style="color:red;">&#11205 ${change.toFixed(2)}</span>`;
+            } else if (change < 0) {
+              changeIndicator = `<span style="color:blue;">&#11206 ${Math.abs(change).toFixed(2)}</span>`;
+            }
+
+            return `
+                    <tr>
+                      <td>${key}</td>
+                      <td>${value.toFixed(2)} <br> <small>${changeIndicator}</small></td>
+                    </tr>
+                  `;
+          })
           .join('')}
           </tbody>
         </table>
       `;
+
       preferenceReportDiv.innerHTML = preferenceReportTable;
     });
   } else {
@@ -261,5 +463,6 @@ document.getElementById("stats").style.display = "none"; // Hide stats by defaul
 document.getElementById("ratedVideos").style.display = "none"; // Hide rated videos by default
 document.getElementById("preferenceReport").style.display = "none"; // Hide preference report by default
 updateStats();
+initializeCalendar();
 
 

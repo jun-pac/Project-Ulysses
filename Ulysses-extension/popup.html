@@ -2,6 +2,8 @@
 <html>
 
 <head>
+  <!-- <meta charset="UTF-8"> -->
+
   <title>YouTube Time Saver</title>
   <style>
     body {
@@ -55,6 +57,31 @@
       transform: scale(1.05);
       /* Slight scale-up on hover */
     }
+
+    smallButton {
+      padding: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      margin: 5px 0;
+      width: 30%;
+      /* Full-width buttons */
+      border: none;
+      border-radius: 10px;
+      /* Rounded buttons */
+      color: white;
+      background: linear-gradient(to right, #38a169, #48bb78);
+      /* Green gradient */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    smallButton:hover {
+      background: linear-gradient(to right, #2f855a, #38a169);
+      /* Darker green on hover */
+      transform: scale(1.05);
+      /* Slight scale-up on hover */
+    }
+
 
     /* Content sections */
     .content-section {
@@ -232,7 +259,9 @@
 
 <body>
   <h2>YouTube Time Saver</h2>
-  <p>Track and analyze your YouTube habits.</p>
+  <p style="font-weight: bold; font-size: 17px; ">Reclaim your control over YouTube.</p>
+  
+  <div id="record">Calendar</div>
 
   <button id="showStats">Show Stats</button>
 

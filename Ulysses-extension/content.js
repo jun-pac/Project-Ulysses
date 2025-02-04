@@ -3,8 +3,8 @@ if (!window.isContentScriptLoaded) {
   // Begin from here if reloaded
   window.isContentScriptLoaded = true;
 
-  const smallTimeInterval = 250;
-  const largeTimeInterval = 1000;
+  const smallTimeInterval = 500;
+  const largeTimeInterval = 3000;
 
   let currentUrl = null;
   let currentVideoId = null;
@@ -679,6 +679,8 @@ if (!window.isContentScriptLoaded) {
     saveRating(videoDetails, userRating);
 
     const { preferenceReport } = await getStorage(["preferenceReport"]);
+    const prevPreferenceReport = JSON.parse(JSON.stringify(preferenceReport));
+
     const prompt = `The current user's preference report is as follows:
       ${JSON.stringify(preferenceReport, null, 2)}
 
@@ -766,7 +768,13 @@ if (!window.isContentScriptLoaded) {
         preferenceReport[key] = Math.round(100 * Math.min(Math.max(value, 1.0), 5.0)) / 100;
       }
 
-      chrome.storage.local.set({ preferenceReport }, () => {
+      const lastChangePreferenceReport = {};
+      for (const key in preferenceReport) {
+        lastChangePreferenceReport[key] = preferenceReport[key] - (prevPreferenceReport[key] || 0);
+      }
+
+
+      chrome.storage.local.set({ preferenceReport, lastChangePreferenceReport }, () => {
         console.log("Preference report updated.");
       });
 
@@ -961,7 +969,7 @@ if (!window.isContentScriptLoaded) {
 
           // Check if video has played for more than 15 seconds
           if (currentVideo.currentTime > 15) {
-            
+
             removeRatingUI();  // Remove UI with fade out effect
           }
 
@@ -1041,7 +1049,15 @@ if (!window.isContentScriptLoaded) {
   };
 
 
+  function injectRecord(record){
+    console.log("INJECTED ", record);
 
+    chrome.storage.local.get(["timeRecords"], (storedData) => {
+      const timeRecords = storedData.timeRecords || [];
+      timeRecords.push(record);
+      chrome.storage.local.set({ timeRecords });
+    });
+  }
 
   function initializeObserver() {
     trackWastedTime();
@@ -1073,6 +1089,10 @@ if (!window.isContentScriptLoaded) {
     // for (const threshold of timeThresholds) {
     //   chrome.storage.local.set({ [`alerted_${threshold.message}`]: false });
     // }
+
+    // let record = { date: "2025-02-04", regularTime: 0, wastedTime: 780};
+    // injectRecord(record);
+
   }
 
   initializeObserver();
