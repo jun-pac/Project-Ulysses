@@ -1089,9 +1089,9 @@ if (!window.isContentScriptLoaded) {
     // for (const threshold of timeThresholds) {
     //   chrome.storage.local.set({ [`alerted_${threshold.message}`]: false });
     // }
-
-    let record = { date: "2025-02-04", regularTime: 0, wastedTime: 400};
-    injectRecord(record);
+    // window.removeStorageKey("timeRecords");
+    // let record = { date: "2025-02-04", regularTime: 0, wastedTime: 20000};
+    // injectRecord(record);
   }
 
   initializeObserver();

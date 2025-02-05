@@ -36,8 +36,10 @@ async function initializeCalendar() {
 function createCalendar(timeRecords) {
   const minWeeks = 11;
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const startDate = new Date(2024, 1, 1); // Earliest start date (Feb 1, 2024)
 
+  console.log("TODAY",today);
   // Filter and sort records by date
   const filteredRecords = timeRecords
     .filter(record => new Date(record.date) >= startDate)
@@ -128,6 +130,7 @@ function createCalendar(timeRecords) {
     // Create and append cell
     const cell = document.createElement("td");
     if (firstRecordDate <= date && date < today) {
+      console.log(date, record.date, today);
       cell.style.backgroundColor = getCellColor(record.wastedTime);
       cell.style.border = "3px solid #f7fafc";
       cell.style.width = "3px";
