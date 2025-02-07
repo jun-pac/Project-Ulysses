@@ -39,7 +39,7 @@ function createCalendar(timeRecords) {
   today.setHours(0, 0, 0, 0);
   const startDate = new Date(2024, 1, 1); // Earliest start date (Feb 1, 2024)
 
-  console.log("TODAY",today);
+  console.log("TODAY", today);
   // Filter and sort records by date
   const filteredRecords = timeRecords
     .filter(record => new Date(record.date) >= startDate)
@@ -63,7 +63,7 @@ function createCalendar(timeRecords) {
     const existingRecord = filteredRecords.find(record => record.date === dateString);
     const newRecord = existingRecord || { date: dateString, wastedTime: 0, regularTime: 0 };
     dateMap.set(dateString, newRecord);
-    if (firstRecordDate <= currentDate && currentDate < today) {
+    if (firstRecordDate < currentDate && currentDate < today) {
       if (newRecord.wastedTime >= 600) {
         streakCounter = 0;
       }
@@ -129,7 +129,7 @@ function createCalendar(timeRecords) {
 
     // Create and append cell
     const cell = document.createElement("td");
-    if (firstRecordDate <= date && date < today) {
+    if (firstRecordDate < date && date < today) {
       console.log(date, record.date, today);
       cell.style.backgroundColor = getCellColor(record.wastedTime);
       cell.style.border = "3px solid #f7fafc";
@@ -138,7 +138,7 @@ function createCalendar(timeRecords) {
       cell.style.tableLayout = "fixed";
       cell.title = `Date: ${record.date}\nWasted Time: ${record.wastedTime.toFixed(2)} seconds\nRegular Time: ${record.regularTime.toFixed(2)} seconds`;
     }
-    else if(date >= today){
+    else if (date >= today) {
       cell.style.backgroundColor = "lightgray";
       cell.style.border = "3px solid #f7fafc";
       cell.style.width = "3px";
@@ -146,7 +146,7 @@ function createCalendar(timeRecords) {
       cell.style.tableLayout = "fixed";
       cell.title = `Date: ${record.date}\nFuture date`;
     }
-    else{
+    else {
       cell.style.backgroundColor = "lightgray";
       cell.style.border = "3px solid #f7fafc";
       cell.style.width = "3px";
@@ -170,14 +170,52 @@ function createCalendar(timeRecords) {
   };
 
   // Add streak info
+  // const streakRow = document.createElement("tr");
+  // const streakCell = document.createElement("td");
+  // streakCell.colSpan = totalWeeks + 1;
+  // streakCell.innerHTML = `<p><small>Longest Streak: ${maxStreak} days <br> Including Today: ${todayStreak} days</small></p>`;
+  // streakCell.style.fontWeight = "bold";
+  // streakCell.style.textAlign = "center";
+  // streakCell.style.padding = "2px";
+  // streakCell.style.backgroundColor = "#f7fafc";
   const streakRow = document.createElement("tr");
   const streakCell = document.createElement("td");
   streakCell.colSpan = totalWeeks + 1;
   streakCell.innerHTML = `<p><small>Longest Streak: ${maxStreak} days <br> Including Today: ${todayStreak} days</small></p>`;
   streakCell.style.fontWeight = "bold";
   streakCell.style.textAlign = "center";
-  streakCell.style.padding = "2px";
+  streakCell.style.padding = "8px";
   streakCell.style.backgroundColor = "#f7fafc";
+  streakCell.style.borderRadius = "8px";
+  streakCell.style.position = "relative";
+
+  const tooltip = document.createElement("div");
+  tooltip.innerText = "Only days with less than 10 minutes \nof wasted videos count as green.\nStreak resets at 5 AM.";
+  tooltip.style.position = "absolute";
+  tooltip.style.bottom = "80%";
+  tooltip.style.left = "50%";
+  tooltip.style.textAlign = "left";
+  tooltip.style.width = "200px";
+  tooltip.style.transform = "translateX(-50%)";
+  tooltip.style.backgroundColor = "black";
+  tooltip.style.color = "white";
+  tooltip.style.padding = "6px 10px";
+  tooltip.style.borderRadius = "6px";
+  tooltip.style.fontSize = "12px";
+  tooltip.style.whiteSpace = "nowrap";
+  tooltip.style.opacity = "0";
+  tooltip.style.transition = "opacity 0.3s ease-in-out";
+
+  tooltip.style.boxShadow = "0px 4px 6px rgba(0, 0, 0, 0.1)";
+  streakCell.appendChild(tooltip);
+
+  streakCell.addEventListener("mouseenter", () => {
+    tooltip.style.opacity = "1";
+  });
+  streakCell.addEventListener("mouseleave", () => {
+    tooltip.style.opacity = "0";
+  });
+
   streakRow.appendChild(streakCell);
   tbody.appendChild(streakRow);
 

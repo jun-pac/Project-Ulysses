@@ -982,26 +982,20 @@ if (!window.isContentScriptLoaded) {
   }
 
 
-  function getKoreanTime() {
-    const now = new Date();
-    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-    const koreaTime = new Date(utc + 9 * 60 * 60000);
-    return koreaTime;
-  }
+
 
   function resetDailyTimeTracking() {
     chrome.storage.local.get(["lastResetTime", "regularTime", "wastedTime"], (data) => {
-      const now = getKoreanTime();
-
-      const lastResetTime = data.lastResetTime ? new Date(data.lastResetTime) : new Date(0);
-
+      const now = new Date(); // Your local time
       const last5AM = new Date(now);
       last5AM.setHours(5, 0, 0, 0);
       if (now < last5AM) {
         last5AM.setDate(last5AM.getDate() - 1);
       }
 
-      // console.log("resetDailyTimeTracking called | now: ", now.toISOString(), " | last5AM: ", last5AM, " | lastResetTime:", lastResetTime);
+      const lastResetTime = data.lastResetTime ? new Date(data.lastResetTime) : new Date(0);
+
+      console.log("resetDailyTimeTracking | now:", now.toISOString(), "| last5AM:", last5AM.toISOString(), "| lastResetTime:", lastResetTime.toISOString());
 
       if (lastResetTime < last5AM) {
         const record = {
@@ -1049,7 +1043,7 @@ if (!window.isContentScriptLoaded) {
   };
 
 
-  function injectRecord(record){
+  function injectRecord(record) {
     console.log("INJECTED ", record);
 
     chrome.storage.local.get(["timeRecords"], (storedData) => {
@@ -1061,7 +1055,8 @@ if (!window.isContentScriptLoaded) {
 
   function initializeObserver() {
     trackWastedTime();
-    setInterval(resetDailyTimeTracking, 20 * 1000);
+    resetDailyTimeTracking(); // Initialize time (First record will be omitted)
+    setInterval(resetDailyTimeTracking, 60 * 1000);
 
     console.log("window.checkStorage():");
     window.checkStorage();
