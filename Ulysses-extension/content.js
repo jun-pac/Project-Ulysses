@@ -551,6 +551,208 @@ if (!window.isContentScriptLoaded) {
   }
 
 
+  function showLandingPage() {
+    // Create the full-screen overlay for the landing page
+    const landingPage = document.createElement("div");
+    landingPage.style.width = "800px";
+    landingPage.style.height = "300px";
+    landingPage.style.position = "fixed"; // Use "fixed" for centering
+    landingPage.style.top = "50%"; // Vertically center
+    landingPage.style.left = "50%"; // Horizontally center
+    landingPage.style.transform = "translate(-50%, -50%)"; // Adjust for exact center
+    landingPage.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+    landingPage.style.display = "flex";
+    landingPage.style.justifyContent = "center";
+    landingPage.style.alignItems = "center";
+    landingPage.style.zIndex = "10000";
+
+    // Create the main content container
+    const container = document.createElement("div");
+    // container.style.width = "50vw";
+    // container.style.height = "65vh"; 
+    container.style.padding = "30px";
+    container.style.backgroundColor = "rgba(0, 0, 0, 0.9)";
+    container.style.borderRadius = "15px";
+    container.style.border = "2px solid white";
+    container.style.textAlign = "left";
+    container.style.color = "white";
+    container.style.fontSize = "38px"; // Increased font size
+    container.style.fontWeight = "bold";
+    container.style.fontFamily = "Arial, sans-serif";
+    container.style.position = "relative";
+
+    // Define landing page content
+    const content = [
+      "YouTube Time Saver helps you focus on valuable content by displaying a timer when watching wasting videos.",
+      "Ratings for videos will be used to personalize waste video detection. Please rate videos to help improve recommendations!",
+      "The Wasting Timer and rating box can be dragged and moved anywhere on the screen.",
+      "You can check your preferences and today's wasting time in the popup menu."
+    ];
+
+    let pageIndex = 0;
+    const text = document.createElement("p");
+    text.innerText = content[pageIndex];
+    text.style.marginBottom = "20px";
+    text.style.fontSize = "23px";
+    container.appendChild(text);
+
+    // Image element for illustrations (to be set dynamically per page)
+    const img = document.createElement("img");
+    img.style.display = "block";
+    img.src = chrome.runtime.getURL(`landing${pageIndex + 1}.png`); // Add image path dynamically
+    img.style.width = "85%";
+    img.style.margin = "50px auto";
+    container.appendChild(img);
+
+    // Moving image element
+    const movingImg = document.createElement("span");
+    container.appendChild(movingImg);
+
+    function updateMovingImgStyle(index) {
+      movingImg.style.position = "absolute";
+      movingImg.style.zIndex = "10001";
+      movingImg.style.fontSize = "50px";
+
+      switch (index) {
+        case 0:
+          movingImg.innerHTML = "&#11013;";
+          movingImg.style.left = "67%";
+          movingImg.style.top = "53%";
+          movingImg.style.animation = "arrowMove1 1s infinite alternate";
+          break;
+        case 1:
+          movingImg.innerHTML = "&#11013;";
+          movingImg.style.left = "40%";
+          movingImg.style.top = "56%";
+          movingImg.style.animation = "arrowMove2 1s infinite alternate";
+          break;
+        case 2:
+          movingImg.innerHTML = "";
+          const imgElement = document.createElement("img");
+          imgElement.src = chrome.runtime.getURL("drag.png");
+          imgElement.style.width = "220px";
+          imgElement.style.height = "auto";
+          movingImg.appendChild(imgElement);
+          movingImg.style.left = "30%";
+          movingImg.style.top = "40%";
+          movingImg.style.animation = "arrowMove3 3s infinite alternate";
+          break;
+        case 3:
+          movingImg.innerHTML = "&#11013;";
+          movingImg.style.left = "74%";
+          movingImg.style.top = "22%";
+          movingImg.style.animation = "arrowMove4 1s infinite alternate";
+          break;
+      }
+    }
+
+    updateMovingImgStyle(pageIndex);
+
+    // Previous button with left arrow icon
+    const prevButton = document.createElement("button");
+    prevButton.innerHTML = "&#11164;";
+    prevButton.style.position = "absolute";
+    prevButton.style.left = "20px";
+    prevButton.style.top = "50%";
+    prevButton.style.fontSize = "50px";
+    prevButton.style.background = "none";
+    prevButton.style.border = "none";
+    prevButton.style.color = "white";
+    prevButton.style.cursor = "pointer";
+    prevButton.style.transform = "scale(1)";
+    prevButton.onmouseover = () => (prevButton.style.transform = "scale(1.2)");
+    prevButton.onmouseout = () => (prevButton.style.transform = "scale(1)");
+
+    prevButton.onclick = () => {
+      if (pageIndex > 0) {
+        pageIndex--;
+        text.innerText = content[pageIndex];
+        img.src = chrome.runtime.getURL(`landing${pageIndex + 1}.png`);
+        if (pageIndex === 0) prevButton.style.display = "none";
+        updateMovingImgStyle(pageIndex);
+        nextButton.innerHTML = "&#11166;";
+        nextButton.onmouseover = () => (nextButton.style.transform = "scale(1.2)");
+        nextButton.onmouseout = () => (nextButton.style.transform = "scale(1)");
+        nextButton.style.fontSize = "50px";
+        nextButton.style.border = "none";
+      }
+    };
+    container.appendChild(prevButton);
+    prevButton.style.display = "none"; // Hide prev button on first page
+
+    // Next button with right arrow icon
+    const nextButton = document.createElement("button");
+    nextButton.innerHTML = "&#11166;";
+    nextButton.style.position = "absolute";
+    nextButton.style.right = "20px";
+    nextButton.style.top = "50%";
+    nextButton.style.fontSize = "50px";
+    nextButton.style.background = "none";
+    nextButton.style.border = "none";
+    nextButton.style.color = "white";
+    nextButton.style.cursor = "pointer";
+    nextButton.style.transform = "scale(1)";
+    nextButton.onmouseover = () => (nextButton.style.transform = "scale(1.2)");
+    nextButton.onmouseout = () => (nextButton.style.transform = "scale(1)");
+
+    nextButton.onclick = () => {
+      if (pageIndex < content.length - 1) {
+        pageIndex++;
+        text.innerText = content[pageIndex];
+        img.src = chrome.runtime.getURL(`landing${pageIndex + 1}.png`); // Update image dynamically
+        updateMovingImgStyle(pageIndex);
+        prevButton.style.display = "block";
+        if (pageIndex === content.length - 1) {
+          nextButton.innerText = "Start\nUsing";
+          nextButton.style.fontSize = "20px";
+          nextButton.style.fontWeight = "Bold";
+          nextButton.style.borderRadius = "5px";
+          nextButton.style.border = "2px solid white";
+        }
+      }
+      else {
+        closeLandingPage();
+      }
+    };
+    container.appendChild(nextButton);
+    landingPage.appendChild(container);
+    document.body.appendChild(landingPage);
+
+    // Function to remove the landing page when finished
+    function closeLandingPage() {
+      document.body.removeChild(landingPage);
+      chrome.storage.local.set({ extensionVersion: chrome.runtime.getManifest().version });
+      console.log("Current version flag saved: ", chrome.runtime.getManifest().version);
+    }
+  }
+
+
+  // CSS Animation for the moving image
+  document.head.insertAdjacentHTML("beforeend", `
+    <style>
+      @keyframes arrowMove1 {
+        0% { transform: translate(7px, -4px) rotate(-210deg); }
+        50% { transform: translate(-7px, 4px) rotate(-210deg); }
+        100% { transform: translate(7px, -4px) rotate(-210deg); }
+      }
+      @keyframes arrowMove2 {
+        0% { transform: translate(-7px, -4px) rotate(30deg); }
+        50% { transform: translate(7px, 4px) rotate(30deg); }
+        100% { transform: translate(-7px, -4px) rotate(30deg); }
+      }
+      @keyframes arrowMove3 {
+        0% { transform: translate(60px, -40px); }
+        50% { transform: translate(-60px, 40px); }
+        100% { transform: translate(60px, -40px); }
+      }
+      @keyframes arrowMove4 {
+        0% { transform: translate(7px, 0) rotate(180deg); }
+        50% { transform: translate(-7px, 0) rotate(180deg); }
+        100% { transform: translate(7px, 0) rotate(180deg); }
+      }
+    </style>
+  `);
+
 
   function truncateDescription(description, maxLength = 300) {
     return description.length > maxLength ? description.substring(0, maxLength) + "..." : description;
@@ -1022,6 +1224,19 @@ if (!window.isContentScriptLoaded) {
     });
   }
 
+  function initializeLandingPage() {
+    // Check if the user has seen the landing page before
+    // Fetch the extension version from manifest.json and check if the landing page should be displayed
+    chrome.storage.local.get(["extensionVersion"], (data) => {
+      const currentVersion = chrome.runtime.getManifest().version;
+      console.log("Current version: ", currentVersion);
+      // const currentVersion = "1.6";
+      if (!data.extensionVersion || data.extensionVersion !== currentVersion) {
+        chrome.storage.local.set({ extensionVersion: currentVersion });
+        showLandingPage();
+      }
+    });
+  }
 
   // Chrome Storage helper functions
   window.checkStorage = () => {
@@ -1087,7 +1302,10 @@ if (!window.isContentScriptLoaded) {
     // window.removeStorageKey("timeRecords");
     // let record = { date: "2025-02-04", regularTime: 0, wastedTime: 20000};
     // injectRecord(record);
+    // window.removeStorageKey("extensionVersion");
   }
 
+
+  initializeLandingPage();
   initializeObserver();
 }

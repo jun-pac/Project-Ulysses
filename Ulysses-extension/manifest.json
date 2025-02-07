@@ -26,7 +26,7 @@
     ],
     "web_accessible_resources": [
       {
-        "resources": ["Transparent_ulysses.png"],
+        "resources": ["Transparent_ulysses.png", "landing1.png", "landing2.png", "landing3.png", "landing4.png", "drag.png"],
         "matches": ["<all_urls>"]
       }
     ]
