@@ -859,7 +859,31 @@ if (!window.isContentScriptLoaded) {
       self_expression: 3.0,          // Exploring personal identity and individuality
     };
 
-    chrome.storage.local.get(["preferenceReport"], (result) => {
+    // Explanation of each preference category
+    const preferenceReportExplanation = {
+      novelty_seeking: "Seeking new and surprising information",
+      humor: "Enjoying funny or comedic content",
+      emotional_catharsis: "Releasing built-up emotions through media",
+      excitement: "Seeking high-energy, intense experiences",
+      relaxation: "Watching to relax and de-stress",
+      aesthetic_pleasure: "Enjoying beauty in visuals, music, or art",
+      empowerment: "Feeling inspired or motivated",
+      controversy: "Engaging with divisive or thought-provoking topics",
+      fear_thrill: "Enjoying horror, suspense, or thrilling content",
+      romantic_aspiration: "Interest in romance and relationship themes",
+      social_connection: "Feeling connected to a community or culture",
+      deep_analysis: "Enjoying in-depth analysis, critical thinking",
+      practical_knowledge: "Learning directly applicable skills",
+      sensory_stimulation: "Engaging with ASMR, music, or high-quality visuals",
+      empathy_compassion: "Connecting emotionally to people or stories",
+      nostalgia: "Seeking comfort from past experiences",
+      achievement_focused: "Interested in productivity, self-improvement",
+      internet_trends: "Engaging with memes, viral videos, and internet culture",
+      cultural_exploration: "Learning about different cultures and traditions",
+      self_expression: "Exploring personal identity and individuality",
+    };
+
+    chrome.storage.local.get(["preferenceReport","preferenceReportExplanation"], (result) => {
       let newReport = {};
 
       if (result.preferenceReport) {
@@ -882,8 +906,8 @@ if (!window.isContentScriptLoaded) {
       }
 
       // Save the updated preference report
-      chrome.storage.local.set({ preferenceReport: newReport }, () => {
-        console.log("Preference report initialized/updated:", newReport);
+      chrome.storage.local.set({ preferenceReport: newReport, preferenceReportExplanation }, () => {
+        console.log("Preference report and Explanation initialized/updated:", newReport);
       });
     });
   }
@@ -919,7 +943,7 @@ if (!window.isContentScriptLoaded) {
       Respond with ONLY the updated preference report in valid JSON format without any additional explanation or text.`;
 
     const messages = [
-      { role: "system", content: "You are an assistant designed to update user preference reports accurately based on video details and ratings." },
+      { role: "system", content: "Update user preferences based on video ratings." },
       { role: "user", content: prompt },
     ];
 

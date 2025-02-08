@@ -55,10 +55,10 @@ function toLocalISOString(time) {
 function toLocalISOString(time) {
   // Get timezone offset in minutes (negative means ahead of UTC, positive means behind)
   const offsetMinutes = time.getTimezoneOffset();
-  
+
   // Convert to local time
   const localDate = new Date(time.getTime() - offsetMinutes * 60 * 1000);
-  
+
   // Format to ISO string without 'Z'
   const isoString = localDate.toISOString().split("Z")[0];
 
@@ -260,6 +260,8 @@ function createCalendar(timeRecords) {
   tooltip.style.transition = "opacity 0.3s ease-in-out";
 
   tooltip.style.boxShadow = "0px 4px 6px rgba(0, 0, 0, 0.1)";
+  tooltip.style.pointerEvents = "none";
+
   streakCell.appendChild(tooltip);
 
   streakCell.addEventListener("mouseenter", () => {
@@ -387,14 +389,6 @@ document.getElementById("showStats").addEventListener("click", () => {
 });
 
 
-// // Reset button logic
-// document.getElementById("resetButton").addEventListener("click", () => {
-//   chrome.storage.local.set({ wastedTime: 0, regularTime: 0 }, () => {
-//     console.log("Time stats have been reset.");
-//     updateStats(); // Immediately update the display
-//   });
-// });
-
 
 // Function to toggle rated videos visibility
 document.getElementById("showRatedVideos").addEventListener("click", () => {
@@ -459,17 +453,18 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
   document.getElementById("showPreferenceReport").textContent = buttonText;
 
   if (isPreferenceReportVisible) {
-    chrome.storage.local.get(["preferenceReport", "lastChangePreferenceReport"], (result) => {
+    chrome.storage.local.get(["preferenceReport", "lastChangePreferenceReport", "preferenceReportExplanation"], (result) => {
       const preferenceReport = result.preferenceReport || {};
       const lastChangePreferenceReport = result.lastChangePreferenceReport || {};
+      const preferenceReportExplanation = result.preferenceReportExplanation || {};
 
       const preferenceReportTable = `
-        <table>
-          <thead>
-            <tr><th>Category</th><th>Score</th></tr>
-          </thead>
-          <tbody>
-            ${Object.entries(preferenceReport)
+      <table>
+        <thead>
+          <tr><th>Category</th><th>Score</th></tr>
+        </thead>
+        <tbody>
+          ${Object.entries(preferenceReport)
           .sort((a, b) => b[1] - a[1])
           .map(([key, value]) => {
             const change = lastChangePreferenceReport[key] || 0;
@@ -481,19 +476,32 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
               changeIndicator = `<span style="color:blue;">&#11206 ${Math.abs(change).toFixed(2)}</span>`;
             }
 
-            return `
-                    <tr>
-                      <td>${key}</td>
-                      <td>${value.toFixed(2)} <br> <small>${changeIndicator}</small></td>
-                    </tr>
-                  `;
+            return `<tr>
+                    <td class="pref-category" data-tooltip="${preferenceReportExplanation[key] || ''}">
+                      ${key}
+                      <div class="tooltip">${preferenceReportExplanation[key] || ''}</div>
+                    </td>
+                    <td>${value.toFixed(2)} <br> <small>${changeIndicator}</small></td>
+                  </tr>`;
           })
           .join('')}
-          </tbody>
-        </table>
-      `;
+        </tbody>
+      </table>
+    `;
 
       preferenceReportDiv.innerHTML = preferenceReportTable;
+
+      // Add tooltip functionality
+      document.querySelectorAll(".pref-category").forEach((cell) => {
+        const tooltip = cell.querySelector(".tooltip");
+        cell.addEventListener("mouseenter", () => {
+          tooltip.style.opacity = "1";
+        });
+        cell.addEventListener("mouseleave", () => {
+          tooltip.style.opacity = "0";
+        });
+      });
+
     });
   } else {
     preferenceReportDiv.innerHTML = ''; // Clear the content when hidden
