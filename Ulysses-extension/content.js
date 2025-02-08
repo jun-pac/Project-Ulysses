@@ -834,41 +834,59 @@ if (!window.isContentScriptLoaded) {
     }
   }
 
-  // Function to initialize the preference report
+
   function initializePreferenceReport() {
-    const initialReport = {
-      curiosity_driven: 3.0,
-      humor: 3.0,
-      emotional_catharsis: 3.0,
-      excitement: 3.0,
-      relaxation: 3.0,
-      aesthetic_pleasure: 3.0,
-      empowerment: 3.0,
-      controversy: 3.0,
-      fear_thrill: 3.0,
-      romantic_aspiration: 3.0,
-      social_connection: 3.0,
-      intellectual_stimulation: 3.0,
-      practical_knowledge: 3.0,
-      sensory_stimulation: 3.0,
-      empathy_compassion: 3.0,
-      nostalgia: 3.0,
-      achievement_focused: 3.0,
-      meme_culture: 3.0,
-      cultural_exploration: 3.0,
-      self_expression: 3.0,
+    const updatedReport = {
+      novelty_seeking: 3.0,          // Seeking new and surprising information 
+      humor: 3.0,                    // Enjoying funny or comedic content
+      emotional_catharsis: 3.0,      // Releasing built-up emotions through media
+      excitement: 3.0,               // Seeking high-energy, intense experiences
+      relaxation: 3.0,               // Watching to relax and de-stress
+      aesthetic_pleasure: 3.0,       // Enjoying beauty in visuals, music, or art
+      empowerment: 3.0,              // Feeling inspired or motivated
+      controversy: 3.0,              // Engaging with divisive or thought-provoking topics
+      fear_thrill: 3.0,              // Enjoying horror, suspense, or thrilling content
+      romantic_aspiration: 3.0,      // Interest in romance and relationship themes
+      social_connection: 3.0,        // Feeling connected to a community or culture
+      deep_analysis: 3.0,            // Enjoying in-depth analysis, critical thinking
+      practical_knowledge: 3.0,      // Learning directly applicable skills
+      sensory_stimulation: 3.0,      // Engaging with ASMR, music, or high-quality visuals
+      empathy_compassion: 3.0,       // Connecting emotionally to people or stories
+      nostalgia: 3.0,                // Seeking comfort from past experiences
+      achievement_focused: 3.0,      // Interested in productivity, self-improvement
+      internet_trends: 3.0,          // Engaging with memes, viral videos, and internet culture
+      cultural_exploration: 3.0,     // Learning about different cultures and traditions
+      self_expression: 3.0,          // Exploring personal identity and individuality
     };
+
     chrome.storage.local.get(["preferenceReport"], (result) => {
+      let newReport = {};
+
       if (result.preferenceReport) {
-        console.log("Preference report already exists. Skipping initialization.");
+        console.log("Updating existing preference report.");
+        const oldReport = result.preferenceReport;
+
+        // (1) Retain existing values if they are still in the updatedReport
+        for (const key in updatedReport) {
+          if (oldReport.hasOwnProperty(key)) {
+            newReport[key] = oldReport[key];
+          } else {
+            // (2) Initialize new keys to 3.0
+            newReport[key] = 3.0;
+          }
+        }
+        // (3) Remove outdated keys (automatically excluded since we iterate over updatedReport)
       } else {
-        chrome.storage.local.set({ preferenceReport: initialReport }, () => {
-          console.log("Preference report initialized.");
-        });
+        console.log("Initializing new preference report.");
+        newReport = { ...updatedReport };
       }
+
+      // Save the updated preference report
+      chrome.storage.local.set({ preferenceReport: newReport }, () => {
+        console.log("Preference report initialized/updated:", newReport);
+      });
     });
   }
-
 
   // Function to update user's preference report
   async function updatePreferenceReport(userRating) {
@@ -1035,7 +1053,7 @@ if (!window.isContentScriptLoaded) {
       { "is_waste": 1 } if the video is a wasted video, or { "is_waste": 0 } if it is not.`;
 
     const messages = [
-      { role: "system", content: "You are an assistant trained to determine if videos align with user preferences or are a waste of time." },
+      { role: "system", content: "Classify the video as waste or not based on user preferences." },
       { role: "user", content: prompt },
     ];
 
