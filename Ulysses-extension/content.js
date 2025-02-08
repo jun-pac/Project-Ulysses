@@ -1185,10 +1185,30 @@ if (!window.isContentScriptLoaded) {
 
 
 
+  function toLocalISOString(time) {
+    // Get timezone offset in minutes (negative means ahead of UTC, positive means behind)
+    const offsetMinutes = time.getTimezoneOffset();
+    
+    // Convert to local time
+    const localDate = new Date(time.getTime() - offsetMinutes * 60 * 1000);
+    
+    // Format to ISO string without 'Z'
+    const isoString = localDate.toISOString().split("Z")[0];
+  
+    // Format timezone offset
+    const sign = offsetMinutes > 0 ? "-" : "+";
+    const absOffsetMinutes = Math.abs(offsetMinutes);
+    const offsetHours = String(Math.floor(absOffsetMinutes / 60)).padStart(2, "0");
+    const offsetMins = String(absOffsetMinutes % 60).padStart(2, "0");
+  
+    return `${isoString}${sign}${offsetHours}:${offsetMins}`;
+  }
+  
 
   function resetDailyTimeTracking() {
     chrome.storage.local.get(["lastResetTime", "regularTime", "wastedTime"], (data) => {
       const now = new Date(); // Your local time
+      // console.log(now.getTimezoneOffset()); // -540
       const last5AM = new Date(now);
       last5AM.setHours(5, 0, 0, 0);
       if (now < last5AM) {
@@ -1196,12 +1216,13 @@ if (!window.isContentScriptLoaded) {
       }
 
       const lastResetTime = data.lastResetTime ? new Date(data.lastResetTime) : new Date(0);
-
-      console.log("resetDailyTimeTracking | now:", now.toISOString(), "| last5AM:", last5AM.toISOString(), "| lastResetTime:", lastResetTime.toISOString());
+      const lastlast5AM = new Date(last5AM - 24 * 60 * 60 * 1000);
+      console.log("resetDailyTimeTracking | now:", now, "| last5AM:", last5AM, "| lastResetTime:", lastResetTime);
 
       if (lastResetTime < last5AM) {
+        
         const record = {
-          date: last5AM.toISOString().split("T")[0],
+          date: toLocalISOString(lastlast5AM).split("T")[0],
           regularTime: data.regularTime || 0,
           wastedTime: data.wastedTime || 0,
         };
@@ -1230,7 +1251,6 @@ if (!window.isContentScriptLoaded) {
     chrome.storage.local.get(["extensionVersion"], (data) => {
       const currentVersion = chrome.runtime.getManifest().version;
       console.log("Current version: ", currentVersion);
-      // const currentVersion = "1.6";
       if (!data.extensionVersion || data.extensionVersion !== currentVersion) {
         chrome.storage.local.set({ extensionVersion: currentVersion });
         showLandingPage();
@@ -1293,19 +1313,19 @@ if (!window.isContentScriptLoaded) {
     // window.removeStorageKey("chatgpt_apiKey");
     // window.removeStorageKey("youtube_apiKey");
 
-
     // For test
     // showAlertMessage("3 hours", "How about spending a few minutes organizing your space or planning your day?");
     // for (const threshold of timeThresholds) {
     //   chrome.storage.local.set({ [`alerted_${threshold.message}`]: false });
     // }
     // window.removeStorageKey("timeRecords");
+    // window.removeStorageKey("lastResetTime");
+    
     // let record = { date: "2025-02-04", regularTime: 0, wastedTime: 20000};
     // injectRecord(record);
     // window.removeStorageKey("extensionVersion");
   }
-
-
+  showLandingPage();
   initializeLandingPage();
   initializeObserver();
 }

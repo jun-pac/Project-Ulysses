@@ -32,27 +32,77 @@ async function initializeCalendar() {
   recordDiv.appendChild(calendar); // Append new calendar
 }
 
+function toLocalISOString(time) {
+  // Get timezone offset in minutes (negative means ahead of UTC, positive means behind)
+  const offsetMinutes = time.getTimezoneOffset();
+
+  // Convert to local time
+  const localDate = new Date(time.getTime() - offsetMinutes * 60 * 1000);
+
+  // Format to ISO string without 'Z'
+  const isoString = localDate.toISOString().split("Z")[0];
+
+  // Format timezone offset
+  const sign = offsetMinutes > 0 ? "-" : "+";
+  const absOffsetMinutes = Math.abs(offsetMinutes);
+  const offsetHours = String(Math.floor(absOffsetMinutes / 60)).padStart(2, "0");
+  const offsetMins = String(absOffsetMinutes % 60).padStart(2, "0");
+
+  return `${isoString}${sign}${offsetHours}:${offsetMins}`;
+}
+
+
+function toLocalISOString(time) {
+  // Get timezone offset in minutes (negative means ahead of UTC, positive means behind)
+  const offsetMinutes = time.getTimezoneOffset();
+  
+  // Convert to local time
+  const localDate = new Date(time.getTime() - offsetMinutes * 60 * 1000);
+  
+  // Format to ISO string without 'Z'
+  const isoString = localDate.toISOString().split("Z")[0];
+
+  // Format timezone offset
+  const sign = offsetMinutes > 0 ? "-" : "+";
+  const absOffsetMinutes = Math.abs(offsetMinutes);
+  const offsetHours = String(Math.floor(absOffsetMinutes / 60)).padStart(2, "0");
+  const offsetMins = String(absOffsetMinutes % 60).padStart(2, "0");
+
+  return `${isoString}${sign}${offsetHours}:${offsetMins}`;
+}
+
 // Function to create a calendar table
 function createCalendar(timeRecords) {
   const minWeeks = 11;
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
   const startDate = new Date(2024, 1, 1); // Earliest start date (Feb 1, 2024)
 
-  console.log("TODAY", today);
+  // console.log("TODAY", today);
   // Filter and sort records by date
   const filteredRecords = timeRecords
     .filter(record => new Date(record.date) >= startDate)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
+  // Determine the first and the last date
+  const now = new Date();
+  const last5AM = new Date();
+  last5AM.setHours(5, 0, 0, 0);
+  if (now < last5AM) {
+    last5AM.setDate(last5AM.getDate() - 1);
+  }
+  const lastlast5AM = new Date(last5AM - 24 * 60 * 60 * 1000);
+  console.log("last5AM, lastlast5AM, toLocalISOString(lastlast5AM)", last5AM, lastlast5AM, toLocalISOString(lastlast5AM));
 
-  // Determine the first recorded date
   const firstRecordDate = filteredRecords.length > 0 ? new Date(filteredRecords[0].date) : today;
-  console.log("firstRecordDate", firstRecordDate.getDate());
+  const lastPossibleDate = new Date(toLocalISOString(lastlast5AM).split("T")[0]);
+  // 0 AM in UTC+0 timezone => Use ISO string to get adequate date.
+  console.log("firstRecordDate, lastPossibleDate", firstRecordDate.toISOString(), lastPossibleDate.toISOString());
+
   // Map to store date-based records
   const dateMap = new Map();
-
   let currentDate = new Date(firstRecordDate);
+  console.log("currentDate: ", currentDate.toISOString());
+
   let streakCounter = 0;
   let maxStreak = 0;
   let todayStreak = 0;
@@ -61,10 +111,10 @@ function createCalendar(timeRecords) {
   while ((currentDate <= today || (dayCounter % 7 !== 0)) || dayCounter < minWeeks * 7) {
     const dateString = currentDate.toISOString().split("T")[0]; // YYYY-MM-DD format
     const existingRecord = filteredRecords.find(record => record.date === dateString);
-    const newRecord = existingRecord || { date: dateString, wastedTime: 0, regularTime: 0 };
-    dateMap.set(dateString, newRecord);
-    if (firstRecordDate < currentDate && currentDate < today) {
-      if (newRecord.wastedTime >= 600) {
+    const record = existingRecord || { date: dateString, wastedTime: 0, regularTime: 0 };
+    dateMap.set(dateString, record);
+    if (firstRecordDate < currentDate && currentDate <= lastPossibleDate) {
+      if (record.wastedTime >= 600) {
         streakCounter = 0;
       }
       else {
@@ -125,11 +175,14 @@ function createCalendar(timeRecords) {
 
   for (const [dateString, record] of dateMap) {
     const date = new Date(dateString);
+    date.setHours(5, 0, 0, 0);
+    // console.log("DS: ", dateString, date, today);
+
     const dayIndex = date.getDay(); // 0 (Sun) to 6 (Sat)
 
     // Create and append cell
     const cell = document.createElement("td");
-    if (firstRecordDate < date && date < today) {
+    if (firstRecordDate < date && date <= lastPossibleDate) {
       console.log(date, record.date, today);
       cell.style.backgroundColor = getCellColor(record.wastedTime);
       cell.style.border = "3px solid #f7fafc";
@@ -138,7 +191,7 @@ function createCalendar(timeRecords) {
       cell.style.tableLayout = "fixed";
       cell.title = `Date: ${record.date}\nWasted Time: ${record.wastedTime.toFixed(2)} seconds\nRegular Time: ${record.regularTime.toFixed(2)} seconds`;
     }
-    else if (date >= today) {
+    else if (date >= today - 24 * 60 * 60 * 1000) {
       cell.style.backgroundColor = "lightgray";
       cell.style.border = "3px solid #f7fafc";
       cell.style.width = "3px";
