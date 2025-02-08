@@ -1188,22 +1188,22 @@ if (!window.isContentScriptLoaded) {
   function toLocalISOString(time) {
     // Get timezone offset in minutes (negative means ahead of UTC, positive means behind)
     const offsetMinutes = time.getTimezoneOffset();
-    
+
     // Convert to local time
     const localDate = new Date(time.getTime() - offsetMinutes * 60 * 1000);
-    
+
     // Format to ISO string without 'Z'
     const isoString = localDate.toISOString().split("Z")[0];
-  
+
     // Format timezone offset
     const sign = offsetMinutes > 0 ? "-" : "+";
     const absOffsetMinutes = Math.abs(offsetMinutes);
     const offsetHours = String(Math.floor(absOffsetMinutes / 60)).padStart(2, "0");
     const offsetMins = String(absOffsetMinutes % 60).padStart(2, "0");
-  
+
     return `${isoString}${sign}${offsetHours}:${offsetMins}`;
   }
-  
+
 
   function resetDailyTimeTracking() {
     chrome.storage.local.get(["lastResetTime", "regularTime", "wastedTime"], (data) => {
@@ -1220,7 +1220,7 @@ if (!window.isContentScriptLoaded) {
       console.log("resetDailyTimeTracking | now:", now, "| last5AM:", last5AM, "| lastResetTime:", lastResetTime);
 
       if (lastResetTime < last5AM) {
-        
+
         const record = {
           date: toLocalISOString(lastlast5AM).split("T")[0],
           regularTime: data.regularTime || 0,
@@ -1282,8 +1282,15 @@ if (!window.isContentScriptLoaded) {
     console.log("INJECTED ", record);
 
     chrome.storage.local.get(["timeRecords"], (storedData) => {
-      const timeRecords = storedData.timeRecords || [];
+      let timeRecords = storedData.timeRecords || [];
+
+      // Remove any existing record with the same date
+      timeRecords = timeRecords.filter(entry => entry.date !== record.date);
+
+      // Add the new record
       timeRecords.push(record);
+
+      // Save back to storage
       chrome.storage.local.set({ timeRecords });
     });
   }
@@ -1320,12 +1327,12 @@ if (!window.isContentScriptLoaded) {
     // }
     // window.removeStorageKey("timeRecords");
     // window.removeStorageKey("lastResetTime");
-    
-    // let record = { date: "2025-02-04", regularTime: 0, wastedTime: 20000};
+
+    // let record = { date: "2025-01-28", regularTime: 0, wastedTime: 400 };
     // injectRecord(record);
     // window.removeStorageKey("extensionVersion");
   }
-  showLandingPage();
+  // showLandingPage();
   initializeLandingPage();
   initializeObserver();
 }
