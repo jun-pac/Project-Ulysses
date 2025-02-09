@@ -17,6 +17,7 @@ if (!window.isContentScriptLoaded) {
   let ratingDiv = null;
   let buttonDiv = null;
   let ratingMessageTimeout = null;
+  let ratingUITimeout = null;
   let shareMessageTimeout = null;
 
   const timeThresholds = [
@@ -825,7 +826,7 @@ if (!window.isContentScriptLoaded) {
       });
 
       console.log("Survey Submitted:", surveyResults);
-      setStorage({surveyResults});
+      setStorage({ surveyResults });
       // Add fetch() call here to send data to the server if needed
       alert("Thank you for your feedback!");
 
@@ -1303,31 +1304,31 @@ if (!window.isContentScriptLoaded) {
     let { uuid } = await getStorage("uuid");
 
     if (!uuid) {
-        uuid = crypto.randomUUID();
-        await setStorage({ uuid });
+      uuid = crypto.randomUUID();
+      await setStorage({ uuid });
     }
 
     // Load Userdata
     let userData = await getStorage(null);
-    console.log("All userData: ",userData);
+    console.log("All userData: ", userData);
     if (!userData) {
-        console.warn("No user data found to back up.");
-        return;
+      console.warn("No user data found to back up.");
+      return;
     }
 
-    // // Send data to backend
-    // try {
-    //     const response = await fetch("https://your-backend-url/api/save-data", {
-    //         method: "POST",
-    //         headers: { "Content-Type": "application/json" },
-    //         body: JSON.stringify({ uuid, data: userData }),
-    //     });
-    //     const result = await response.json();
-    //     console.log("Backup successful:", result);
-    // } catch (error) {
-    //     console.error("Error backing up user data:", error);
-    // }
-}
+    // Send data to backend
+    try {
+      const response = await fetch("https://7r8wl7aqi9.execute-api.ap-southeast-2.amazonaws.com/dev/save-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uuid, data: userData }),
+      });
+      const result = await response.json();
+      console.log("Backup successful:", result);
+    } catch (error) {
+      console.error("Error backing up user data:", error);
+    }
+  }
 
 
 
@@ -1357,6 +1358,13 @@ if (!window.isContentScriptLoaded) {
 
         if (currentUrl.startsWith("https://www.youtube.com/watch") || currentUrl.startsWith("https://www.youtube.com/shorts")) {
           createRatingUI();
+
+          // Delete rating UI after 15 seconds
+          if (ratingUITimeout) clearTimeout(ratingUITimeout);
+          ratingUITimeout = setTimeout(() => {
+            removeRatingUI();  // Remove UI with fade out effect
+          }, 15000);
+
           isWastingVideo().then((result) => {
             isWaste = result;
             console.log("Initial isWaste:", isWaste); // This will log true or false
@@ -1417,12 +1425,6 @@ if (!window.isContentScriptLoaded) {
                 }
               });
             }
-          }
-
-          // Check if video has played for more than 15 seconds
-          if (currentVideo.currentTime > 15) {
-
-            removeRatingUI();  // Remove UI with fade out effect
           }
 
           // Reset interval count
@@ -1585,7 +1587,7 @@ if (!window.isContentScriptLoaded) {
 
   // createSurveyUI();
   // showLandingPage();
-  backupUserData();
+  // backupUserData();
   initializeLandingPage();
   initializeObserver();
 }

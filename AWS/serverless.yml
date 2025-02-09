@@ -1,0 +1,30 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: kuzumekorea
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: ulysses-extension
+service: youtube-proxy-server
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  deploymentBucket:
+    name: suzume-no-tojimari-heize
+  region: ap-southeast-2 
+  environment:
+    YOUTUBE_API_KEY: ${env:YOUTUBE_API_KEY}
+    OPENAI_API_KEY: ${env:OPENAI_API_KEY}
+
+functions:
+  app:
+    handler: server.handler
+    events:
+      - http: ANY /
+      - http: ANY {proxy+}
+
+# package:
+#   exclude:
+#     - node_modules/**
+#   excludeDevDependencies: false 
+
+plugins:
+  - serverless-offline
