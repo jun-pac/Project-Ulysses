@@ -551,6 +551,16 @@ if (!window.isContentScriptLoaded) {
   }
 
 
+
+
+
+
+
+
+
+
+
+
   function showLandingPage() {
     // Create the full-screen overlay for the landing page
     const landingPage = document.createElement("div");
@@ -754,6 +764,172 @@ if (!window.isContentScriptLoaded) {
   `);
 
 
+
+  function createSurveyUI() {
+    // Remove existing survey if it already exists
+    removeSurveyUI();
+
+    // Create the survey container
+    const surveyContainer = document.createElement("div");
+    surveyContainer.id = "survey-container";
+    surveyContainer.innerHTML = `
+      <div id="survey-box">
+        <button id="close-survey">&#11197;</button>
+        <h2>Your Feedback Helps Improve This Extension!</h2>
+        <p>Help more people reduce wasted time on YouTube! Your feedback is invaluable and will directly contribute to enhancing this extension.</p>
+        <form id="survey-form">
+          <label>1. Do you think the Timer UI effectively prevents you from watching wasting videos? If not, why?</label>
+          <select name="question1" required>
+            <option value="" disabled selected>Select an option</option>
+            <option value=1>Very Dissatisfied</option>
+            <option value=2>Dissatisfied</option>
+            <option value=3>Neutral</option>
+            <option value=4>Satisfied</option>
+            <option value=5>Very Satisfied</option>
+          </select>
+          
+          <label>2. Do you feel that the personalized wasting video detection is accurate?</label>
+          <select name="question2" required>
+            <option value="" disabled selected>Select an option</option>
+            <option value=1>Very Dissatisfied</option>
+            <option value=2>Dissatisfied</option>
+            <option value=3>Neutral</option>
+            <option value=4>Satisfied</option>
+            <option value=5>Very Satisfied</option>
+          </select>
+          
+          <label>3. What is the main reason you use this extension?</label>
+          <textarea name="question3" required></textarea>
+
+          <label>4. What feature would you like to see improved or added?</label>
+          <textarea name="question4" required></textarea>
+
+          <button type="submit">Submit</button>
+        </form>
+      </div>
+    `;
+
+    document.body.appendChild(surveyContainer);
+
+    // Close button event listener
+    document.getElementById("close-survey").addEventListener("click", removeSurveyUI);
+
+    // Handle form submission
+    document.getElementById("survey-form").addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+      const surveyResults = {};
+      formData.forEach((value, key) => {
+        surveyResults[key] = value;
+      });
+
+      console.log("Survey Submitted:", surveyResults);
+      setStorage({surveyResults});
+      // Add fetch() call here to send data to the server if needed
+      alert("Thank you for your feedback!");
+
+      removeSurveyUI(); // Close survey after submission
+    });
+
+    // Add survey styles
+    addSurveyStyles();
+  }
+
+  function removeSurveyUI() {
+    const surveyContainer = document.getElementById("survey-container");
+    if (surveyContainer) {
+      surveyContainer.remove();
+    }
+  }
+
+  function addSurveyStyles() {
+    const style = document.createElement("style");
+    style.textContent = `
+        #survey-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 450px;
+            background: white;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 10000;
+            font-family: Arial, sans-serif;
+        }
+
+        #survey-box {
+            position: relative;
+        }
+
+        #close-survey {
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        form label {
+            font-size: 14px;
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+
+        form textarea, form select {
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        form button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 15px;
+            cursor: pointer;
+        }
+
+        form button:hover {
+            background: #0056b3;
+        }
+    `;
+    document.head.appendChild(style);
+  }
+
+
+
+
+
+
+
+
+
+
+
+
   function truncateDescription(description, maxLength = 300) {
     return description.length > maxLength ? description.substring(0, maxLength) + "..." : description;
   }
@@ -883,7 +1059,7 @@ if (!window.isContentScriptLoaded) {
       self_expression: "Exploring personal identity and individuality",
     };
 
-    chrome.storage.local.get(["preferenceReport","preferenceReportExplanation"], (result) => {
+    chrome.storage.local.get(["preferenceReport", "preferenceReportExplanation"], (result) => {
       let newReport = {};
 
       if (result.preferenceReport) {
@@ -1077,7 +1253,7 @@ if (!window.isContentScriptLoaded) {
       { "is_waste": 1 } if the video is a wasted video, or { "is_waste": 0 } if it is not.`;
 
     const messages = [
-      { role: "system", content: "Classify the video as waste or not based on user preferences." },
+      { role: "system", content: "You are an assistant trained to determine if videos align with user preferences or are a waste of time." },
       { role: "user", content: prompt },
     ];
 
@@ -1121,6 +1297,38 @@ if (!window.isContentScriptLoaded) {
   function isShortsVideo() {
     return window.location.href.includes("/shorts/");
   }
+
+
+  async function backupUserData() {
+    let { uuid } = await getStorage("uuid");
+
+    if (!uuid) {
+        uuid = crypto.randomUUID();
+        await setStorage({ uuid });
+    }
+
+    // Load Userdata
+    let userData = await getStorage(null);
+    console.log("All userData: ",userData);
+    if (!userData) {
+        console.warn("No user data found to back up.");
+        return;
+    }
+
+    // // Send data to backend
+    // try {
+    //     const response = await fetch("https://your-backend-url/api/save-data", {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({ uuid, data: userData }),
+    //     });
+    //     const result = await response.json();
+    //     console.log("Backup successful:", result);
+    // } catch (error) {
+    //     console.error("Error backing up user data:", error);
+    // }
+}
+
 
 
   function trackWastedTime() {
@@ -1374,7 +1582,10 @@ if (!window.isContentScriptLoaded) {
     // injectRecord(record);
     // window.removeStorageKey("extensionVersion");
   }
+
+  // createSurveyUI();
   // showLandingPage();
+  backupUserData();
   initializeLandingPage();
   initializeObserver();
 }
