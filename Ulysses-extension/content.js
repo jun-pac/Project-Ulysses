@@ -1310,7 +1310,7 @@ if (!window.isContentScriptLoaded) {
 
     // Load Userdata
     let userData = await getStorage(null);
-    console.log("All userData: ", userData);
+    // console.log("All userData: ", userData);
     if (!userData) {
       console.warn("No user data found to back up.");
       return;

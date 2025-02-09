@@ -13,9 +13,14 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Connect to MongoDB Atlas
 const mongoose = require("mongoose");
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGO_URI, {
+    connectTimeoutMS: 5000,
+    retryWrites: true,
+  })
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.error("MongoDB Connection Error:", err));
+
+mongoose.set('debug', true);
 
 // Define Schema
 const UserSchema = new mongoose.Schema({
@@ -32,6 +37,18 @@ app.post("/save-data", async (req, res) => {
     let { uuid, data } = req.body;
     console.log("User data received: ",uuid, data);
 
+    // Check MongoDB connection state
+    const connectionState = mongoose.connection.readyState;
+    if (connectionState === 0) {
+      console.log("MongoDB is disconnected");
+    } else if (connectionState === 1) {
+      console.log("MongoDB is connected");
+    } else if (connectionState === 2) {
+      console.log("MongoDB is connecting");
+    } else if (connectionState === 3) {
+      console.log("MongoDB is disconnecting");
+    }
+
     // Save or update user data
     const updatedUser = await User.findOneAndUpdate(
       { uuid },
@@ -41,7 +58,7 @@ app.post("/save-data", async (req, res) => {
     console.log("User data saved successfully");
     res.json({ message: "User data saved successfully", uuid, user: updatedUser });
   } catch (error) {
-    console.error("Error saving user data:", error);
+    console.error("Error saving user data:", error.message, error.stack);
     res.status(500).json({ error: "Failed to save user data" });
   }
 });
@@ -49,7 +66,20 @@ app.post("/save-data", async (req, res) => {
 /* ======= 2. Retrieve all user data (Admin Console) ======= */
 app.get("/get-users", async (req, res) => {
   try {
+    // Check MongoDB connection state
+    const connectionState = mongoose.connection.readyState;
+    if (connectionState === 0) {
+      console.log("MongoDB is disconnected");
+    } else if (connectionState === 1) {
+      console.log("MongoDB is connected");
+    } else if (connectionState === 2) {
+      console.log("MongoDB is connecting");
+    } else if (connectionState === 3) {
+      console.log("MongoDB is disconnecting");
+    }
+    
     const users = await User.find({});
+    console.log("users data:", users);
     res.json(users);
   } catch (error) {
     console.error("Error fetching users:", error);
