@@ -5,6 +5,7 @@ if (!window.isContentScriptLoaded) {
 
   const smallTimeInterval = 500;
   const largeTimeInterval = 3000;
+  const SURVEYDATE = 3;
 
   let currentUrl = null;
   let currentVideoId = null;
@@ -825,8 +826,10 @@ if (!window.isContentScriptLoaded) {
         surveyResults[key] = value;
       });
 
-      console.log("Survey Submitted:", surveyResults);
-      setStorage({ surveyResults });
+      chrome.storage.local.set({ surveyResults }, () => {
+        console.log("Survey Submitted:", surveyResults);
+        backupUserData();
+      });
       // Add fetch() call here to send data to the server if needed
       alert("Thank you for your feedback!");
 
@@ -1483,8 +1486,14 @@ if (!window.isContentScriptLoaded) {
 
         chrome.storage.local.get(["timeRecords"], (storedData) => {
           const timeRecords = storedData.timeRecords || [];
+          let prevLength = timeRecords.length;
+          console.log("prevLength ", prevLength);
+
           timeRecords.push(record);
-          chrome.storage.local.set({ timeRecords });
+          chrome.storage.local.set({ timeRecords }, () => {
+            if (prevLength === SURVEYDATE) createSurveyUI();
+            backupUserData();
+          });
         });
 
         chrome.storage.local.set({ regularTime: 0, wastedTime: 0, lastResetTime: now.toISOString() });
@@ -1578,7 +1587,8 @@ if (!window.isContentScriptLoaded) {
     //   chrome.storage.local.set({ [`alerted_${threshold.message}`]: false });
     // }
     // window.removeStorageKey("timeRecords");
-    // window.removeStorageKey("lastResetTime");
+    // window.removeStorageKey("surveyResults");
+    window.removeStorageKey("lastResetTime");
 
     // let record = { date: "2025-01-28", regularTime: 0, wastedTime: 400 };
     // injectRecord(record);
