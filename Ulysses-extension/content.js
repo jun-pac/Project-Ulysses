@@ -1512,7 +1512,7 @@ if (!window.isContentScriptLoaded) {
     chrome.storage.local.get(["extensionVersion"], (data) => {
       const currentVersion = chrome.runtime.getManifest().version;
       console.log("Current version: ", currentVersion);
-      if (!data.extensionVersion || data.extensionVersion !== currentVersion) {
+      if (!data.extensionVersion) {
         chrome.storage.local.set({ extensionVersion: currentVersion });
         showLandingPage();
       }
@@ -1539,17 +1539,19 @@ if (!window.isContentScriptLoaded) {
   };
 
 
-  function injectRecord(record) {
-    console.log("INJECTED ", record);
+  async function injectRecords(records) {
+    console.log("INJECTED ", records);
 
     chrome.storage.local.get(["timeRecords"], (storedData) => {
       let timeRecords = storedData.timeRecords || [];
 
-      // Remove any existing record with the same date
-      timeRecords = timeRecords.filter(entry => entry.date !== record.date);
+      for (let i = 0; i < records.length; i++) {
+        // Remove any existing record with the same date
+        timeRecords = timeRecords.filter(entry => entry.date !== records[i].date);
 
-      // Add the new record
-      timeRecords.push(record);
+        // Add the new record
+        timeRecords.push(records[i]);
+      }
 
       // Save back to storage
       chrome.storage.local.set({ timeRecords });
@@ -1590,8 +1592,28 @@ if (!window.isContentScriptLoaded) {
     // window.removeStorageKey("surveyResults");
     // window.removeStorageKey("lastResetTime");
 
-    // let record = { date: "2025-01-28", regularTime: 0, wastedTime: 400 };
-    // injectRecord(record);
+    // let records = [{ date: "2025-01-21", regularTime: 0, wastedTime: 140 },
+    // { date: "2025-01-22", regularTime: 0, wastedTime: 560 },
+    // { date: "2025-01-23", regularTime: 0, wastedTime: 490 },
+    // { date: "2025-01-24", regularTime: 0, wastedTime: 300 },
+    // { date: "2025-01-25", regularTime: 0, wastedTime: 150 },
+    // { date: "2025-01-26", regularTime: 0, wastedTime: 240 },
+    // { date: "2025-01-27", regularTime: 0, wastedTime: 100 },
+    // { date: "2025-01-28", regularTime: 0, wastedTime: 440 },
+    // { date: "2025-01-29", regularTime: 0, wastedTime: 390 },
+    // { date: "2025-01-30", regularTime: 0, wastedTime: 300 },
+    // { date: "2025-01-31", regularTime: 0, wastedTime: 100 },
+    // { date: "2025-02-01", regularTime: 0, wastedTime: 250 },
+    // { date: "2025-02-02", regularTime: 0, wastedTime: 0 },
+    // { date: "2025-02-03", regularTime: 0, wastedTime: 670 },
+    // { date: "2025-02-04", regularTime: 0, wastedTime: 450 },
+    // { date: "2025-02-05", regularTime: 0, wastedTime: 1200 },
+    // { date: "2025-02-06", regularTime: 0, wastedTime: 2400 },
+    // { date: "2025-02-07", regularTime: 0, wastedTime: 500 },
+    // { date: "2025-02-08", regularTime: 0, wastedTime: 130 },
+    // { date: "2025-02-09", regularTime: 0, wastedTime: 400 }
+    // ];
+    // injectRecords(records);
     // window.removeStorageKey("extensionVersion");
   }
 
