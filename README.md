@@ -29,24 +29,20 @@ Try our extension [here](https://chromewebstore.google.com/detail/youtube-time-s
 1. Wasted Time Timer   
 When watching wasted videos, a timer is displayed on the screen showing the accumulated "wasted time."
 
-2. Statistics Popup   
-Clicking the extension icon opens a popup where users can view their stats.   
-A Stats button reveals a graph comparing wasted time vs. regular video time, allowing users to visualize their YouTube habits over time.   
-
-3. Preference Report   
-Based on a set of 20 emotional needs, the extension generates a personalized preference report for each user, helping them understand their unique viewing patterns.   
-This report is further personalized through user feedback, using ChatGPT-4o-mini to adjust preferences based on input provided over time.
-
-4. Rated Videos   
-Users can rate the videos they've watched on a scale from 1 to 5 stars. These ratings are stored in chrome.storage.local and can be accessed through the popup.     
-The Rated Videos section in popup displays the channel name, video title, and rating in a clean, table-like format. Ratings are color-coded with a smooth gradient ranging from gray (low ratings) to green (high ratings), making it easy for users to assess their preferences.
-
-5. Activity Calendar   
+2. Activity Calendar   
 Each day, if wasted video time stays under 10 minutes, the calendar marks it green. If it exceeds 10 minutes, it turns red. The extension tracks the longest streak of green days, encouraging users to maintain a positive viewing habit over time.
 
-6. Interactive Onboarding Guide   
-A landing page introduces first-time users to the extension¡¯s features and controls. This guided onboarding ensures users quickly understand how to track their time, interpret stats, and use the preference report effectively.
+3. Statistics Popup   
+Clicking the extension icon opens a popup where users can view their stats. A Stats button reveals a graph comparing wasted time vs. regular video time, allowing users to visualize their YouTube habits over time.
 
+4. Preference Report   
+Based on a set of 20 emotional needs, the extension generates a personalized preference report for each user, helping them understand their unique viewing patterns. This report is further personalized through user feedback, using ChatGPT-4o-mini to adjust preferences based on input provided over time.
+
+5. Rated Videos   
+Users can rate the videos they've watched on a scale from 1 to 5 stars. These ratings are stored in chrome.storage.local and can be accessed through the popup.
+
+6. Interactive Onboarding Guide   
+A landing page introduces first-time users to the extension¢®?s features and controls. This guided onboarding ensures users quickly understand how to track their time, interpret stats, and use the preference report effectively.
 
 
 ## Privacy Policy 

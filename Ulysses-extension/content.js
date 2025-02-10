@@ -1588,7 +1588,7 @@ if (!window.isContentScriptLoaded) {
     // }
     // window.removeStorageKey("timeRecords");
     // window.removeStorageKey("surveyResults");
-    window.removeStorageKey("lastResetTime");
+    // window.removeStorageKey("lastResetTime");
 
     // let record = { date: "2025-01-28", regularTime: 0, wastedTime: 400 };
     // injectRecord(record);
