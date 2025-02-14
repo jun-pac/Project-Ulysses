@@ -1327,7 +1327,7 @@ if (!window.isContentScriptLoaded) {
         body: JSON.stringify({ uuid, data: userData }),
       });
       const result = await response.json();
-      console.log("Backup successful:", result);
+      // console.log("Backup successful:", result);
     } catch (error) {
       console.error("Error backing up user data:", error);
     }
@@ -1472,7 +1472,7 @@ if (!window.isContentScriptLoaded) {
 
       const lastResetTime = data.lastResetTime ? new Date(data.lastResetTime) : new Date(0);
       const lastlast5AM = new Date(last5AM - 24 * 60 * 60 * 1000);
-      console.log("resetDailyTimeTracking | now:", now, "| last5AM:", last5AM, "| lastResetTime:", lastResetTime);
+      // console.log("resetDailyTimeTracking | now:", now, "| last5AM:", last5AM, "| lastResetTime:", lastResetTime);
 
       if (lastResetTime < last5AM) {
 
@@ -1591,6 +1591,7 @@ if (!window.isContentScriptLoaded) {
     // window.removeStorageKey("timeRecords");
     // window.removeStorageKey("surveyResults");
     // window.removeStorageKey("lastResetTime");
+    // window.removeStorageKey("extensionVersion");
 
     // let records = [{ date: "2025-01-21", regularTime: 0, wastedTime: 140 },
     // { date: "2025-01-22", regularTime: 0, wastedTime: 560 },
@@ -1614,7 +1615,6 @@ if (!window.isContentScriptLoaded) {
     // { date: "2025-02-09", regularTime: 0, wastedTime: 400 }
     // ];
     // injectRecords(records);
-    // window.removeStorageKey("extensionVersion");
   }
 
   // createSurveyUI();

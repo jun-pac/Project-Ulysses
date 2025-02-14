@@ -7,3 +7,4 @@ AWS/*
 !AWS/serverless.yml
 server
 Console
+!Console/public/index.html

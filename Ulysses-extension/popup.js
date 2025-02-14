@@ -547,7 +547,8 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
 
 // Share button logic
 document.getElementById("shareButton").addEventListener("click", () => {
-  const shareUrl = "https://chromewebstore.google.com/detail/youtube-time-saver/hgnjolfjangenehndnflggfpddcgjdfo"; // Replace with the actual extension URL
+  const shareUrl = "https://chromewebstore.google.com/detail/youtube-time-saver/hgnjolfjangenehndnflggfpddcgjdfo?utm_source=referral&utm_medium=share&utm_campaign=viral";
+  // const shareUrl = "https://chromewebstore.google.com/detail/youtube-time-saver/hgnjolfjangenehndnflggfpddcgjdfo"; // Replace with the actual extension URL
   // const shareUrl = "https://github.com/jun-pac/Project-Ulysses";
   navigator.clipboard.writeText(shareUrl).then(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {

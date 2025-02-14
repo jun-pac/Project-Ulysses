@@ -87,6 +87,26 @@ app.get("/get-users", async (req, res) => {
   }
 });
 
+/* ======= 3. Delete user data by UUIDs ======= */
+app.post("/delete-users", async (req, res) => {  
+  try {
+    const { uuids } = req.body;
+    if (!Array.isArray(uuids) || uuids.length === 0) {
+      return res.status(400).json({ error: "Invalid UUID list" });
+    }
+
+    console.log("Deleting users with UUIDs:", uuids);
+
+    const result = await User.deleteMany({ uuid: { $in: uuids } });
+
+    console.log(`Deleted ${result.deletedCount} users`);
+    res.json({ message: "Users deleted successfully", deletedCount: result.deletedCount });
+  } catch (error) {
+    console.error("Error deleting users:", error.message, error.stack);
+    res.status(500).json({ error: "Failed to delete users" });
+  }
+});
+
 
 // YouTube API Proxy Route
 app.get("/video-details", async (req, res) => {
