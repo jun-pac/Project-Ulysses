@@ -1513,7 +1513,7 @@ if (!window.isContentScriptLoaded) {
       const currentVersion = chrome.runtime.getManifest().version;
       console.log("Current version: ", currentVersion);
       if (!data.extensionVersion) {
-        chrome.storage.local.set({ extensionVersion: currentVersion });
+        // chrome.storage.local.set({ extensionVersion: currentVersion });
         showLandingPage();
       }
     });
@@ -1592,6 +1592,7 @@ if (!window.isContentScriptLoaded) {
     // window.removeStorageKey("surveyResults");
     // window.removeStorageKey("lastResetTime");
     // window.removeStorageKey("extensionVersion");
+    // window.removeStorageKey("uuid");
 
     // let records = [{ date: "2025-01-21", regularTime: 0, wastedTime: 140 },
     // { date: "2025-01-22", regularTime: 0, wastedTime: 560 },

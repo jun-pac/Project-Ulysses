@@ -441,7 +441,6 @@ function getRatingClass(rating) {
   return { color };
 }
 
-
 // Function to toggle preference report visibility
 document.getElementById("showPreferenceReport").addEventListener("click", () => {
   const preferenceReportDiv = document.getElementById("preferenceReport");
@@ -487,6 +486,7 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
           .join('')}
         </tbody>
       </table>
+      <button id="resetPreferenceReport" class="small-button" title="Clicking this button will reset the preference report to 3.0 for all categories. Other user data such as rated video list and activity history will not be deleted.">Reset Preference Report</button>
     `;
 
       preferenceReportDiv.innerHTML = preferenceReportTable;
@@ -502,11 +502,104 @@ document.getElementById("showPreferenceReport").addEventListener("click", () => 
         });
       });
 
+      // Add event listener for reset button
+      document.getElementById("resetPreferenceReport").addEventListener("click", () => {
+        const confirmReset = confirm(
+          "Clicking this button will reset the preference report to 3.0 for all categories.\n" +
+          "Other user data such as rated video list and activity history will not be deleted.\n" +
+          "Do you want to proceed?"
+        );
+
+        if (confirmReset) {
+          chrome.storage.local.get(["preferenceReport"], (data) => {
+            const newPreferenceReport = {};
+            Object.keys(data.preferenceReport || {}).forEach(key => {
+              newPreferenceReport[key] = 3.0; // Reset all values to 3.0
+            });
+
+            chrome.storage.local.set({
+              preferenceReport: newPreferenceReport,
+              lastChangePreferenceReport: {} // Clear last change values
+            }, () => {
+              alert("Preference Report has been reset.");
+              document.getElementById("showPreferenceReport").click(); // Refresh by toggling
+              document.getElementById("showPreferenceReport").click();
+            });
+          });
+        }
+      });
+
     });
   } else {
     preferenceReportDiv.innerHTML = ''; // Clear the content when hidden
   }
 });
+
+// // Function to toggle preference report visibility
+// document.getElementById("showPreferenceReport").addEventListener("click", () => {
+//   const preferenceReportDiv = document.getElementById("preferenceReport");
+//   isPreferenceReportVisible = !isPreferenceReportVisible;
+
+//   preferenceReportDiv.style.display = isPreferenceReportVisible ? "block" : "none";
+
+//   const buttonText = isPreferenceReportVisible ? "Hide Preference Report" : "Show Preference Report";
+//   document.getElementById("showPreferenceReport").textContent = buttonText;
+
+//   if (isPreferenceReportVisible) {
+//     chrome.storage.local.get(["preferenceReport", "lastChangePreferenceReport", "preferenceReportExplanation"], (result) => {
+//       const preferenceReport = result.preferenceReport || {};
+//       const lastChangePreferenceReport = result.lastChangePreferenceReport || {};
+//       const preferenceReportExplanation = result.preferenceReportExplanation || {};
+
+//       const preferenceReportTable = `
+//       <table>
+//         <thead>
+//           <tr><th>Category</th><th>Score</th></tr>
+//         </thead>
+//         <tbody>
+//           ${Object.entries(preferenceReport)
+//           .sort((a, b) => b[1] - a[1])
+//           .map(([key, value]) => {
+//             const change = lastChangePreferenceReport[key] || 0;
+//             let changeIndicator = `<span style="color:gray;">0.00</span>`;
+
+//             if (change > 0) {
+//               changeIndicator = `<span style="color:red;">&#11205 ${change.toFixed(2)}</span>`;
+//             } else if (change < 0) {
+//               changeIndicator = `<span style="color:blue;">&#11206 ${Math.abs(change).toFixed(2)}</span>`;
+//             }
+
+//             return `<tr>
+//                     <td class="pref-category" data-tooltip="${preferenceReportExplanation[key] || ''}">
+//                       ${key}
+//                       <div class="tooltip">${preferenceReportExplanation[key] || ''}</div>
+//                     </td>
+//                     <td>${value.toFixed(2)} <br> <small>${changeIndicator}</small></td>
+//                   </tr>`;
+//           })
+//           .join('')}
+//         </tbody>
+//       </table>
+//     `;
+
+//       preferenceReportDiv.innerHTML = preferenceReportTable;
+
+//       // Add tooltip functionality
+//       document.querySelectorAll(".pref-category").forEach((cell) => {
+//         const tooltip = cell.querySelector(".tooltip");
+//         cell.addEventListener("mouseenter", () => {
+//           tooltip.style.opacity = "1";
+//         });
+//         cell.addEventListener("mouseleave", () => {
+//           tooltip.style.opacity = "0";
+//         });
+//       });
+
+//     });
+//   } else {
+//     preferenceReportDiv.innerHTML = ''; // Clear the content when hidden
+//   }
+// });
 
 
 
